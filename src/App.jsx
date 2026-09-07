@@ -34,7 +34,9 @@ import {
   X,
   Edit3,
   ListOrdered,
-  Grid
+  Grid,
+  ChevronRight,
+  FolderSearch
 } from "lucide-react";
 
 export default function App() {
@@ -79,11 +81,12 @@ export default function App() {
   const [capturedPhotos, setCapturedPhotos] = useState([]);
   const [annotatingPhotoIndex, setAnnotatingPhotoIndex] = useState(null);
 
-  // Register Display, Grouping & Zone Filter
+  // Register Display, Grouping & 2-Tier Filter
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState("All");
   const [groupByMode, setGroupByMode] = useState("chronological");
-  const [selectedZoneFilter, setSelectedZoneFilter] = useState(null);
+  const [activeMainZone, setActiveMainZone] = useState(null); // null = unselected (clean state), "ALL" = view everything
+  const [activeSubZone, setActiveSubZone] = useState(null);
 
   // Edit Defect state
   const [editingDefect, setEditingDefect] = useState(null);
@@ -271,26 +274,55 @@ export default function App() {
     });
   }, [defects, searchQuery, filterStatus]);
 
-  // Extract available sub-zones / floors with counts
-  const availableZones = useMemo(() => {
-    const zoneCounts = {};
+  // Dynamic counts for Tier 1 main zones
+  const mainZoneCounts = useMemo(() => {
+    const counts = {};
     defects.forEach((d) => {
-      const key = d.subLayer || d.zoneId || "Unassigned";
-      zoneCounts[key] = (zoneCounts[key] || 0) + 1;
+      const z = d.zoneId || "Other";
+      counts[z] = (counts[z] || 0) + 1;
     });
-    return Object.entries(zoneCounts).sort((a, b) => b[1] - a[1]);
+    return counts;
   }, [defects]);
 
-  // Grouping logic honoring selectedZoneFilter
+  // Dynamic counts for Tier 2 sub-layers within the active main zone
+  const subLayerOptions = useMemo(() => {
+    if (!activeMainZone || activeMainZone === "ALL") return [];
+    
+    // Check known sub-layers from constants
+    const config = ZONE_OPTIONS[activeMainZone];
+    const knownKeys = config?.floors || config?.areas || config?.wings || [];
+    
+    // Also include any logged subLayer or location strings
+    const subCounts = {};
+    defects.filter((d) => d.zoneId === activeMainZone).forEach((d) => {
+      const k = d.subLayer || "General";
+      subCounts[k] = (subCounts[k] || 0) + 1;
+    });
+
+    const combinedList = Array.from(new Set([...knownKeys, ...Object.keys(subCounts)]));
+    return combinedList.map((key) => ({
+      name: key,
+      count: subCounts[key] || 0
+    }));
+  }, [activeMainZone, defects]);
+
+  // Grouping logic honoring Tier 1 & Tier 2 selection
   const groupedRecords = useMemo(() => {
-    const recordsToGroup = selectedZoneFilter
-      ? filteredRecords.filter(
-          (d) => (d.subLayer || d.zoneId || "Unassigned") === selectedZoneFilter
-        )
-      : filteredRecords;
+    if (!activeMainZone) return {}; // Zero-state: Show nothing until user selects a zone
+
+    let recordsToGroup = filteredRecords;
+
+    if (activeMainZone !== "ALL") {
+      recordsToGroup = recordsToGroup.filter((d) => d.zoneId === activeMainZone);
+      if (activeSubZone) {
+        recordsToGroup = recordsToGroup.filter(
+          (d) => (d.subLayer || "") === activeSubZone || (d.location || "").includes(activeSubZone)
+        );
+      }
+    }
 
     if (groupByMode === "chronological") {
-      return { "All Defects": recordsToGroup };
+      return { "Defect Records": recordsToGroup };
     }
 
     const groups = {};
@@ -298,6 +330,9 @@ export default function App() {
       let key = "Other";
       if (groupByMode === "zone") {
         key = ZONE_OPTIONS[item.zoneId]?.label || item.zoneId || "Unassigned Zone";
+        if (item.subLayer && item.subLayer !== item.zoneId) {
+          key += ` • ${item.subLayer}`;
+        }
       } else if (groupByMode === "trade") {
         key = item.trade || "Unclassified Trade";
       }
@@ -307,7 +342,7 @@ export default function App() {
     });
 
     return groups;
-  }, [filteredRecords, groupByMode, selectedZoneFilter]);
+  }, [filteredRecords, groupByMode, activeMainZone, activeSubZone]);
 
   const stats = useMemo(() => {
     const total = defects.length;
@@ -751,14 +786,15 @@ export default function App() {
           </div>
         )}
 
-        {/* TAB 2: MASTER REGISTER WITH GROUPING, FILTER CHIPS & EDIT BUTTON */}
+        {/* TAB 2: MASTER REGISTER WITH 2-TIER DRILL-DOWN */}
         {activeTab === "records" && (
           <div className="space-y-4">
+            {/* Search, Status & Grouping Controls */}
             <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-3">
                 <div>
                   <h2 className="text-sm font-bold text-slate-900">Master Defect Register</h2>
-                  <p className="text-xs text-slate-500">Group defects by Building Zone, Trade, or Timeline</p>
+                  <p className="text-xs text-slate-500">Drill down by building zone & floor levels</p>
                 </div>
 
                 <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 self-start sm:self-auto">
@@ -816,38 +852,71 @@ export default function App() {
               </div>
             </div>
 
-            {/* Quick Sub-Zone / Floor Filter Chips */}
-            {availableZones.length > 0 && (
-              <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm space-y-2">
-                <div className="flex items-center justify-between">
+            {/* TWO-TIER HIERARCHICAL DRILL-DOWN FILTER */}
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+              {/* Tier 1: Main Zones */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                    Filter by Sub-Zone / Floor
+                    Step 1: Select Main Zone
                   </span>
-                  {selectedZoneFilter && (
+                  {activeMainZone && (
                     <button
-                      onClick={() => setSelectedZoneFilter(null)}
+                      onClick={() => {
+                        setActiveMainZone(null);
+                        setActiveSubZone(null);
+                      }}
                       className="text-[11px] font-bold text-blue-600 hover:text-blue-800 underline"
                     >
-                      Clear Filter
+                      Reset Directory
                     </button>
                   )}
                 </div>
 
-                <div className="flex flex-wrap gap-1.5">
-                  {availableZones.map(([zoneName, count]) => {
-                    const isActive = selectedZoneFilter === zoneName;
+                <div className="flex flex-wrap gap-2">
+                  {/* View All Option */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveMainZone(activeMainZone === "ALL" ? null : "ALL");
+                      setActiveSubZone(null);
+                    }}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${
+                      activeMainZone === "ALL"
+                        ? "bg-blue-600 text-white border-blue-600 shadow-md"
+                        : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
+                    }`}
+                  >
+                    <span>All Zones</span>
+                    <span
+                      className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                        activeMainZone === "ALL" ? "bg-blue-700 text-white" : "bg-slate-200 text-slate-600"
+                      }`}
+                    >
+                      {defects.length}
+                    </span>
+                  </button>
+
+                  {/* Specific Zones from ZONE_OPTIONS */}
+                  {Object.keys(ZONE_OPTIONS).map((zKey) => {
+                    const zone = ZONE_OPTIONS[zKey];
+                    const count = mainZoneCounts[zKey] || 0;
+                    const isActive = activeMainZone === zKey;
                     return (
                       <button
-                        key={zoneName}
+                        key={zKey}
                         type="button"
-                        onClick={() => setSelectedZoneFilter(isActive ? null : zoneName)}
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-semibold border transition-all ${
+                        onClick={() => {
+                          setActiveMainZone(isActive ? null : zKey);
+                          setActiveSubZone(null);
+                        }}
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${
                           isActive
-                            ? "bg-blue-600 text-white border-blue-600 shadow-sm"
+                            ? "bg-blue-600 text-white border-blue-600 shadow-md"
                             : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
                         }`}
                       >
-                        <span>{zoneName}</span>
+                        <span>{zone.label}</span>
                         <span
                           className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
                             isActive ? "bg-blue-700 text-white" : "bg-slate-200 text-slate-600"
@@ -860,11 +929,71 @@ export default function App() {
                   })}
                 </div>
               </div>
-            )}
 
-            {Object.keys(groupedRecords).length === 0 || filteredRecords.length === 0 ? (
+              {/* Tier 2: Sub-Levels / Floors (Appears dynamically when a main zone is chosen) */}
+              {activeMainZone && activeMainZone !== "ALL" && subLayerOptions.length > 0 && (
+                <div className="pt-3 border-t border-slate-100">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-blue-700 flex items-center gap-1">
+                      <ChevronRight className="w-3.5 h-3.5" />
+                      Step 2: Sub-Floor / Specific Area ({ZONE_OPTIONS[activeMainZone]?.label})
+                    </span>
+                    {activeSubZone && (
+                      <button
+                        onClick={() => setActiveSubZone(null)}
+                        className="text-[10px] font-bold text-slate-500 hover:text-slate-800 underline"
+                      >
+                        Clear Floor Selection
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="flex flex-wrap gap-1.5">
+                    {subLayerOptions.map((opt) => {
+                      const isSubActive = activeSubZone === opt.name;
+                      return (
+                        <button
+                          key={opt.name}
+                          type="button"
+                          onClick={() => setActiveSubZone(isSubActive ? null : opt.name)}
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all ${
+                            isSubActive
+                              ? "bg-slate-900 text-white border-slate-900 shadow-sm"
+                              : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                          }`}
+                        >
+                          <span>{opt.name}</span>
+                          <span
+                            className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                              isSubActive ? "bg-slate-800 text-white" : "bg-slate-100 text-slate-500"
+                            }`}
+                          >
+                            {opt.count}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* DEFECT LIST OR EMPTY/PROMPT STATE */}
+            {!activeMainZone ? (
+              <div className="bg-white p-12 rounded-2xl border border-slate-200 text-center space-y-3">
+                <div className="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto shadow-sm">
+                  <FolderSearch className="w-7 h-7" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-slate-800">No Zone Selected</h3>
+                  <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">
+                    Select a Main Zone or Floor above (e.g., Podium Carpark or Residential) to inspect defects.
+                  </p>
+                </div>
+              </div>
+            ) : Object.keys(groupedRecords).length === 0 || Object.values(groupedRecords).every((g) => g.length === 0) ? (
               <div className="bg-white p-8 rounded-2xl border text-center text-slate-400">
-                No defects match your filters.
+                No defects logged in this selected zone or floor matching your filters.
               </div>
             ) : (
               Object.keys(groupedRecords).map((groupTitle) => {
@@ -999,7 +1128,7 @@ export default function App() {
         )}
       </main>
 
-      {/* BOTTOM NAV (ADAPTIVE WITH LABELS & DESKTOP DOCK) */}
+      {/* BOTTOM NAV */}
       <nav
         className={`fixed bottom-0 left-0 right-0 z-50 bg-slate-950/95 backdrop-blur-md border-t border-slate-800 transition-transform duration-300 shadow-2xl ${
           showBottomNav ? "translate-y-0" : "translate-y-full"
