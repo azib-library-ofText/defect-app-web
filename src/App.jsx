@@ -79,10 +79,11 @@ export default function App() {
   const [capturedPhotos, setCapturedPhotos] = useState([]);
   const [annotatingPhotoIndex, setAnnotatingPhotoIndex] = useState(null);
 
-  // Register Display & Grouping
+  // Register Display, Grouping & Zone Filter
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState("All");
   const [groupByMode, setGroupByMode] = useState("chronological");
+  const [selectedZoneFilter, setSelectedZoneFilter] = useState(null);
 
   // Edit Defect state
   const [editingDefect, setEditingDefect] = useState(null);
@@ -99,7 +100,7 @@ export default function App() {
       setAuthLoading(false);
     });
     return () => unsubscribe();
-  }, []);
+  }, [inspectorTag]);
 
   useEffect(() => {
     if (!user) return;
@@ -257,6 +258,7 @@ export default function App() {
     if (list.length > 0) setModalImageGallery({ images: list, index: startIndex });
   };
 
+  // Base search & status filtering
   const filteredRecords = useMemo(() => {
     return defects.filter((d) => {
       const matchSearch =
@@ -269,13 +271,30 @@ export default function App() {
     });
   }, [defects, searchQuery, filterStatus]);
 
+  // Extract available sub-zones / floors with counts
+  const availableZones = useMemo(() => {
+    const zoneCounts = {};
+    defects.forEach((d) => {
+      const key = d.subLayer || d.zoneId || "Unassigned";
+      zoneCounts[key] = (zoneCounts[key] || 0) + 1;
+    });
+    return Object.entries(zoneCounts).sort((a, b) => b[1] - a[1]);
+  }, [defects]);
+
+  // Grouping logic honoring selectedZoneFilter
   const groupedRecords = useMemo(() => {
+    const recordsToGroup = selectedZoneFilter
+      ? filteredRecords.filter(
+          (d) => (d.subLayer || d.zoneId || "Unassigned") === selectedZoneFilter
+        )
+      : filteredRecords;
+
     if (groupByMode === "chronological") {
-      return { "All Defects": filteredRecords };
+      return { "All Defects": recordsToGroup };
     }
 
     const groups = {};
-    filteredRecords.forEach((item) => {
+    recordsToGroup.forEach((item) => {
       let key = "Other";
       if (groupByMode === "zone") {
         key = ZONE_OPTIONS[item.zoneId]?.label || item.zoneId || "Unassigned Zone";
@@ -288,7 +307,7 @@ export default function App() {
     });
 
     return groups;
-  }, [filteredRecords, groupByMode]);
+  }, [filteredRecords, groupByMode, selectedZoneFilter]);
 
   const stats = useMemo(() => {
     const total = defects.length;
@@ -732,7 +751,7 @@ export default function App() {
           </div>
         )}
 
-        {/* TAB 2: MASTER REGISTER WITH GROUPING & EDIT BUTTON */}
+        {/* TAB 2: MASTER REGISTER WITH GROUPING, FILTER CHIPS & EDIT BUTTON */}
         {activeTab === "records" && (
           <div className="space-y-4">
             <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
@@ -796,6 +815,52 @@ export default function App() {
                 </select>
               </div>
             </div>
+
+            {/* Quick Sub-Zone / Floor Filter Chips */}
+            {availableZones.length > 0 && (
+              <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-sm space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                    Filter by Sub-Zone / Floor
+                  </span>
+                  {selectedZoneFilter && (
+                    <button
+                      onClick={() => setSelectedZoneFilter(null)}
+                      className="text-[11px] font-bold text-blue-600 hover:text-blue-800 underline"
+                    >
+                      Clear Filter
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap gap-1.5">
+                  {availableZones.map(([zoneName, count]) => {
+                    const isActive = selectedZoneFilter === zoneName;
+                    return (
+                      <button
+                        key={zoneName}
+                        type="button"
+                        onClick={() => setSelectedZoneFilter(isActive ? null : zoneName)}
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-semibold border transition-all ${
+                          isActive
+                            ? "bg-blue-600 text-white border-blue-600 shadow-sm"
+                            : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
+                        }`}
+                      >
+                        <span>{zoneName}</span>
+                        <span
+                          className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                            isActive ? "bg-blue-700 text-white" : "bg-slate-200 text-slate-600"
+                          }`}
+                        >
+                          {count}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {Object.keys(groupedRecords).length === 0 || filteredRecords.length === 0 ? (
               <div className="bg-white p-8 rounded-2xl border text-center text-slate-400">
@@ -934,39 +999,45 @@ export default function App() {
         )}
       </main>
 
-      {/* BOTTOM NAV */}
+      {/* BOTTOM NAV (ADAPTIVE WITH LABELS & DESKTOP DOCK) */}
       <nav
         className={`fixed bottom-0 left-0 right-0 z-50 bg-slate-950/95 backdrop-blur-md border-t border-slate-800 transition-transform duration-300 shadow-2xl ${
           showBottomNav ? "translate-y-0" : "translate-y-full"
         }`}
       >
-        <div className="max-w-xs mx-auto px-6 py-2.5 flex items-center justify-around">
+        <div className="max-w-md mx-auto px-4 py-2 flex items-center justify-around">
           <button
             onClick={() => handleTabChange("form")}
-            className={`p-3 rounded-2xl transition-all ${
-              activeTab === "form" ? "bg-blue-600 text-white shadow-lg" : "text-slate-400 hover:text-white"
+            className={`flex flex-col sm:flex-row items-center gap-1 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl transition-all ${
+              activeTab === "form"
+                ? "bg-blue-600 text-white shadow-lg shadow-blue-500/30"
+                : "text-slate-400 hover:text-white hover:bg-slate-800/50"
             }`}
-            title="Log Defect"
           >
-            <PlusCircle className="w-6 h-6" />
+            <PlusCircle className="w-5 h-5 sm:w-4 sm:h-4" />
+            <span className="text-[10px] sm:text-xs font-bold tracking-tight">Log Defect</span>
           </button>
           <button
             onClick={() => handleTabChange("records")}
-            className={`p-3 rounded-2xl transition-all ${
-              activeTab === "records" ? "bg-blue-600 text-white shadow-lg" : "text-slate-400 hover:text-white"
+            className={`flex flex-col sm:flex-row items-center gap-1 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl transition-all ${
+              activeTab === "records"
+                ? "bg-blue-600 text-white shadow-lg shadow-blue-500/30"
+                : "text-slate-400 hover:text-white hover:bg-slate-800/50"
             }`}
-            title="Master Register"
           >
-            <FileSpreadsheet className="w-6 h-6" />
+            <FileSpreadsheet className="w-5 h-5 sm:w-4 sm:h-4" />
+            <span className="text-[10px] sm:text-xs font-bold tracking-tight">Master Register</span>
           </button>
           <button
             onClick={() => handleTabChange("analytics")}
-            className={`p-3 rounded-2xl transition-all ${
-              activeTab === "analytics" ? "bg-blue-600 text-white shadow-lg" : "text-slate-400 hover:text-white"
+            className={`flex flex-col sm:flex-row items-center gap-1 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl transition-all ${
+              activeTab === "analytics"
+                ? "bg-blue-600 text-white shadow-lg shadow-blue-500/30"
+                : "text-slate-400 hover:text-white hover:bg-slate-800/50"
             }`}
-            title="Analytics"
           >
-            <BarChart3 className="w-6 h-6" />
+            <BarChart3 className="w-5 h-5 sm:w-4 sm:h-4" />
+            <span className="text-[10px] sm:text-xs font-bold tracking-tight">Analytics</span>
           </button>
         </div>
       </nav>
@@ -1022,4 +1093,3 @@ export default function App() {
     </div>
   );
 }
-
