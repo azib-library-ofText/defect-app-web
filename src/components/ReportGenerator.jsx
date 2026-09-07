@@ -6,8 +6,6 @@ import {
   FileText,
   Building,
   Layers,
-  CheckSquare,
-  Square,
   Image as ImageIcon
 } from "lucide-react";
 
@@ -263,7 +261,7 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
                 <th className="border border-slate-800 p-2 w-10 text-center">No.</th>
                 <th className="border border-slate-800 p-2 w-44">Location & Landmark</th>
                 <th className="border border-slate-800 p-2">Trade & Defect Description</th>
-                <th className="border border-slate-800 p-2 w-52 text-center">Evidence Thumbnails</th>
+                <th className="border border-slate-800 p-2 w-48 text-center">Evidence Photos</th>
                 <th className="border border-slate-800 p-2 w-28 text-center">Status / Priority</th>
                 <th className="border border-slate-800 p-2 w-36 text-center">Rectification Sign-Off</th>
               </tr>
@@ -329,26 +327,26 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
                         )}
                       </td>
 
-                      {/* 4. Thumbnails */}
+                      {/* 4. Vertical Photo Stack (One-by-One, utilizing cell height) */}
                       <td className="border border-slate-800 p-1.5">
                         {photoList.length === 0 ? (
                           <div className="h-16 flex items-center justify-center text-[10px] text-slate-400 italic">
                             No Photo
                           </div>
                         ) : (
-                          <div className="grid grid-cols-2 gap-1">
+                          <div className="flex flex-col gap-1.5">
                             {photoList.slice(0, 4).map((url, pIdx) => (
                               <div
                                 key={pIdx}
                                 onClick={() => onOpenGallery && onOpenGallery(photoList, pIdx)}
-                                className="relative aspect-video w-full bg-slate-100 rounded overflow-hidden border border-slate-300 cursor-pointer"
+                                className="relative aspect-video w-full bg-slate-100 rounded overflow-hidden border border-slate-300 cursor-pointer shadow-xs"
                               >
                                 <img
                                   src={url}
                                   alt={`Evidence ${pIdx + 1}`}
                                   className="w-full h-full object-cover"
                                 />
-                                <span className="absolute bottom-0.5 right-0.5 text-[7px] font-bold bg-black/75 text-white px-1 rounded">
+                                <span className="absolute bottom-1 right-1 text-[8px] font-bold bg-black/75 text-white px-1.5 py-0.5 rounded">
                                   {index + 1}.{pIdx + 1}
                                 </span>
                               </div>
