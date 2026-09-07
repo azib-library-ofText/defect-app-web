@@ -13,6 +13,7 @@ import {
 import { compressImage, uploadToImgBB } from "./utils.js";
 import Annotator from "./components/Annotator.jsx";
 import EditModal from "./components/EditModal.jsx";
+import ReportGenerator from "./components/ReportGenerator.jsx";
 import {
   Camera,
   Layers,
@@ -28,7 +29,7 @@ import {
   Building,
   Search,
   FileSpreadsheet,
-  BarChart3,
+  FileText,
   PlusCircle,
   Users,
   X,
@@ -356,16 +357,6 @@ export default function App() {
     return groups;
   }, [filteredRecords, groupByMode, activeMainZone, activeSubZone]);
 
-  const stats = useMemo(() => {
-    const total = defects.length;
-    const rectified = defects.filter((d) => d.status === "Rectified").length;
-    const inProgress = defects.filter((d) => d.status === "In Progress").length;
-    const pending = defects.filter((d) => d.status === "Pending Rectification").length;
-    const high = defects.filter((d) => d.severity === "High").length;
-    const rate = total > 0 ? Math.round((rectified / total) * 100) : 0;
-    return { total, rectified, inProgress, pending, high, rate };
-  }, [defects]);
-
   if (authLoading) {
     return (
       <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4 text-white">
@@ -401,7 +392,7 @@ export default function App() {
     <div className="min-h-screen bg-slate-100 text-slate-900 font-sans antialiased pb-28">
       {/* HEADER */}
       <header
-        className={`fixed top-0 left-0 right-0 z-40 bg-slate-950 text-white shadow-md transition-transform duration-300 ${
+        className={`fixed top-0 left-0 right-0 z-40 bg-slate-950 text-white shadow-md transition-transform duration-300 print:hidden ${
           isAtTop ? "translate-y-0" : "-translate-y-full"
         }`}
       >
@@ -435,9 +426,9 @@ export default function App() {
         </div>
       </header>
 
-      <div className="h-16"></div>
+      <div className="h-16 print:hidden"></div>
 
-      <main className="max-w-4xl mx-auto p-3 sm:p-5 space-y-4">
+      <main className="max-w-4xl mx-auto p-3 sm:p-5 space-y-4 print:p-0 print:m-0 print:max-w-full">
         {/* TAB 1: DEFECT FORM */}
         {activeTab === "form" && (
           <div className="space-y-4">
@@ -1117,35 +1108,19 @@ export default function App() {
           </div>
         )}
 
-        {/* TAB 3: KPI OVERVIEW */}
-        {activeTab === "analytics" && (
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-                <p className="text-[11px] font-bold text-slate-500 uppercase">Total Logged</p>
-                <h3 className="text-2xl font-black text-slate-900 mt-1">{stats.total}</h3>
-              </div>
-              <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-                <p className="text-[11px] font-bold text-slate-500 uppercase">Rectified</p>
-                <h3 className="text-2xl font-black text-emerald-600 mt-1">{stats.rectified}</h3>
-                <p className="text-[10px] text-emerald-600 font-bold mt-0.5">{stats.rate}% Closed</p>
-              </div>
-              <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-                <p className="text-[11px] font-bold text-slate-500 uppercase">In Progress</p>
-                <h3 className="text-2xl font-black text-amber-600 mt-1">{stats.inProgress}</h3>
-              </div>
-              <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-                <p className="text-[11px] font-bold text-slate-500 uppercase">Critical (High)</p>
-                <h3 className="text-2xl font-black text-rose-600 mt-1">{stats.high}</h3>
-              </div>
-            </div>
-          </div>
+        {/* TAB 3: DLP AUDIT REPORT GENERATOR */}
+        {activeTab === "report" && (
+          <ReportGenerator
+            defects={defects}
+            inspectorTag={inspectorTag}
+            onOpenGallery={openGalleryModal}
+          />
         )}
       </main>
 
       {/* BOTTOM NAV */}
       <nav
-        className={`fixed bottom-0 left-0 right-0 z-50 bg-slate-950/95 backdrop-blur-md border-t border-slate-800 transition-transform duration-300 shadow-2xl ${
+        className={`fixed bottom-0 left-0 right-0 z-50 bg-slate-950/95 backdrop-blur-md border-t border-slate-800 transition-transform duration-300 shadow-2xl print:hidden ${
           showBottomNav ? "translate-y-0" : "translate-y-full"
         }`}
       >
@@ -1173,15 +1148,16 @@ export default function App() {
             <span className="text-[10px] sm:text-xs font-bold tracking-tight">Master Register</span>
           </button>
           <button
-            onClick={() => handleTabChange("analytics")}
+            onClick={() => handleTabChange("report")}
             className={`flex flex-col sm:flex-row items-center gap-1 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl transition-all ${
-              activeTab === "analytics"
+              activeTab === "report"
                 ? "bg-blue-600 text-white shadow-lg shadow-blue-500/30"
                 : "text-slate-400 hover:text-white hover:bg-slate-800/50"
             }`}
+            title="DLP Report Generator"
           >
-            <BarChart3 className="w-5 h-5 sm:w-4 sm:h-4" />
-            <span className="text-[10px] sm:text-xs font-bold tracking-tight">Analytics</span>
+            <FileText className="w-5 h-5 sm:w-4 sm:h-4" />
+            <span className="text-[10px] sm:text-xs font-bold tracking-tight">Report</span>
           </button>
         </div>
       </nav>
@@ -1217,7 +1193,7 @@ export default function App() {
       {modalImageGallery.images.length > 0 && (
         <div
           onClick={() => setModalImageGallery({ images: [], index: 0 })}
-          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4 cursor-pointer"
+          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4 cursor-pointer print:hidden"
         >
           <div onClick={(e) => e.stopPropagation()} className="relative max-w-3xl w-full flex flex-col items-center">
             <img
