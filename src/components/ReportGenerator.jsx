@@ -3,7 +3,6 @@ import React, { useState, useMemo } from "react";
 import { ZONE_OPTIONS, PROJECT_CONFIG } from "../constants.jsx";
 import {
   Printer,
-  Download,
   Filter,
   CheckCircle2,
   Clock,
@@ -60,71 +59,14 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
     return { total, rectified, inProgress, pending, high, completionRate };
   }, [filteredReportDefects]);
 
-  // Trigger Native Browser Print Dialog
   const handlePrint = () => {
     window.print();
-  };
-
-  // CSV Generator for Excel / Google Sheets
-  const handleExportCSV = () => {
-    if (filteredReportDefects.length === 0) {
-      alert("No defect records to export within selected scope.");
-      return;
-    }
-
-    const headers = [
-      "Defect ID",
-      "Date Logged",
-      "Main Zone",
-      "Sub Zone / Floor",
-      "Exact Location & Landmark",
-      "Trade Discipline",
-      "Element / Classification",
-      "Defect Symptom",
-      "Severity",
-      "Status",
-      "Rectification Instructions",
-      "Logged By",
-      "Photo URLs"
-    ];
-
-    const rows = filteredReportDefects.map((d, index) => {
-      const photoList =
-        d.photoUrls && d.photoUrls.length > 0 ? d.photoUrls : [d.photoUrl].filter(Boolean);
-      return [
-        `"RD-DEF-${(index + 1).toString().padStart(4, "0")}"`,
-        `"${d.date || ""}"`,
-        `"${d.zoneId || ""}"`,
-        `"${d.subLayer || ""}"`,
-        `"${(d.location || "").replace(/"/g, '""')}"`,
-        `"${d.trade || ""}"`,
-        `"${(d.element || "").replace(/"/g, '""')}"`,
-        `"${(d.item || "").replace(/"/g, '""')}"`,
-        `"${d.severity || ""}"`,
-        `"${d.status || ""}"`,
-        `"${(d.desc || "").replace(/"/g, '""')}"`,
-        `"${d.loggedBy || ""}"`,
-        `"${photoList.join(" ; ")}"`
-      ];
-    });
-
-    const csvContent =
-      "data:text/csv;charset=utf-8,\uFEFF" +
-      [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    const dateStr = new Date().toISOString().split("T")[0];
-    link.setAttribute("download", `Residensi_Damai_DLP_Report_${reportMainZone}_${dateStr}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
   };
 
   return (
     <div className="space-y-6">
       {/* ========================================================================= */}
-      {/* 1. INTERACTIVE REPORT CONTROL CONSOLE (HIDDEN ON PRINT) */}
+      {/* 1. REPORT SCOPE CONTROLS (HIDDEN ON PRINT) */}
       {/* ========================================================================= */}
       <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4 print:hidden">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
@@ -134,19 +76,11 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
               DLP Audit Report Generator
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">
-              Configure scope parameters, preview audit records, and export to PDF or CSV.
+              Filter scope parameters, review defect records, and generate audit-ready print/PDF copies.
             </p>
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              onClick={handleExportCSV}
-              className="py-2 px-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs flex items-center gap-2 border border-slate-300 transition"
-              title="Export as CSV/Excel"
-            >
-              <Download className="w-4 h-4 text-emerald-600" />
-              <span>Export CSV</span>
-            </button>
             <button
               onClick={handlePrint}
               className="py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs flex items-center gap-2 shadow-md transition"
@@ -243,7 +177,7 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
       </div>
 
       {/* ========================================================================= */}
-      {/* 2. PRINTABLE AUDIT REPORT SHEET (VISIBLE ON SCREEN & PRINT) */}
+      {/* 2. PRINTABLE AUDIT REPORT SHEET */}
       {/* ========================================================================= */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-8 space-y-6 print:p-0 print:border-none print:shadow-none">
         {/* FORMAL REPORT HEADER */}
@@ -399,9 +333,9 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
                       </div>
                     </div>
 
-                    {/* Defect Metadata & Photo Split (Fixed Proportions) */}
+                    {/* Defect Metadata & Photo Split */}
                     <div className="grid grid-cols-12 gap-3 pt-1">
-                      {/* Left: Location & Specific Rectification Notes (7 cols) */}
+                      {/* Left: Location & Rectification Instructions (7 cols) */}
                       <div className="col-span-12 sm:col-span-7 space-y-2 text-xs">
                         <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-200">
                           <span className="font-bold text-slate-700 block mb-0.5">Location Hierarchy:</span>
@@ -424,7 +358,7 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
                         )}
                       </div>
 
-                      {/* Right: ImgBB Evidence Thumbnails (5 cols) */}
+                      {/* Right: Evidence Photos (5 cols) */}
                       <div className="col-span-12 sm:col-span-5 space-y-1">
                         <span className="text-[10px] font-bold uppercase text-slate-500 block">
                           Attached Photos ({photoList.length}/4):
