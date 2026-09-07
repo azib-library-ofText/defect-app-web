@@ -3,13 +3,12 @@ import React, { useState, useMemo } from "react";
 import { ZONE_OPTIONS, PROJECT_CONFIG } from "../constants.jsx";
 import {
   Printer,
-  Filter,
-  CheckCircle2,
-  Clock,
-  AlertTriangle,
   FileText,
   Building,
-  Layers
+  Layers,
+  CheckSquare,
+  Square,
+  Image as ImageIcon
 } from "lucide-react";
 
 export default function ReportGenerator({ defects = [], inspectorTag, onOpenGallery }) {
@@ -17,6 +16,7 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
   const [reportSubZone, setReportSubZone] = useState("All");
   const [reportStatus, setReportStatus] = useState("All");
   const [reportSeverity, setReportSeverity] = useState("All");
+  const [includeAppendix, setIncludeAppendix] = useState(true);
 
   const availableSubZones = useMemo(() => {
     if (reportMainZone === "Carpark") return ZONE_OPTIONS.Carpark.floors;
@@ -62,7 +62,7 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
   return (
     <div className="space-y-6">
       {/* ========================================================================= */}
-      {/* 1. INTERACTIVE FILTER CONSOLE (HIDDEN ON PRINT) */}
+      {/* 1. INTERACTIVE FILTER & CONFIG CONSOLE (HIDDEN ON PRINT) */}
       {/* ========================================================================= */}
       <div className="bg-white p-4 rounded-xl border border-slate-300 shadow-sm space-y-3 print:hidden">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-3">
@@ -72,7 +72,7 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
               DLP Audit Report Configuration
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">
-              Filter audit parameters before exporting or printing the formal handover document.
+              Filter audit parameters and configure photographic appendix before exporting to PDF.
             </p>
           </div>
 
@@ -85,6 +85,7 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
           </button>
         </div>
 
+        {/* Filter Dropdowns */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
           <div>
             <label className="block text-[10px] font-bold uppercase text-slate-600 mb-1">
@@ -157,6 +158,25 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
               <option value="Low">Low</option>
             </select>
           </div>
+        </div>
+
+        {/* Options Row: Photo Appendix Toggle */}
+        <div className="pt-2 border-t border-slate-200 flex items-center justify-between">
+          <label className="flex items-center gap-2 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={includeAppendix}
+              onChange={(e) => setIncludeAppendix(e.target.checked)}
+              className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500"
+            />
+            <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+              <ImageIcon className="w-3.5 h-3.5 text-blue-600" />
+              Include High-Resolution Photographic Appendix (Full Evidence Plates)
+            </span>
+          </label>
+          <span className="text-[11px] text-slate-500 italic">
+            {includeAppendix ? "Full audit package with photo plates" : "Compact schedule only"}
+          </span>
         </div>
       </div>
 
@@ -243,7 +263,7 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
                 <th className="border border-slate-800 p-2 w-10 text-center">No.</th>
                 <th className="border border-slate-800 p-2 w-44">Location & Landmark</th>
                 <th className="border border-slate-800 p-2">Trade & Defect Description</th>
-                <th className="border border-slate-800 p-2 w-52 text-center">Photographic Evidence</th>
+                <th className="border border-slate-800 p-2 w-52 text-center">Evidence Thumbnails</th>
                 <th className="border border-slate-800 p-2 w-28 text-center">Status / Priority</th>
                 <th className="border border-slate-800 p-2 w-36 text-center">Rectification Sign-Off</th>
               </tr>
@@ -302,9 +322,14 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
                             <strong>Work Required:</strong> {defect.desc}
                           </p>
                         )}
+                        {includeAppendix && photoList.length > 0 && (
+                          <span className="text-[9px] font-bold text-blue-700 block pt-0.5">
+                            ↳ See Appendix Plate #{index + 1} ({photoList.length} High-Res Photos)
+                          </span>
+                        )}
                       </td>
 
-                      {/* 4. Unified Evidence Photo Grid (No Stretch, Tight Inside Cell) */}
+                      {/* 4. Thumbnails */}
                       <td className="border border-slate-800 p-1.5">
                         {photoList.length === 0 ? (
                           <div className="h-16 flex items-center justify-center text-[10px] text-slate-400 italic">
@@ -324,7 +349,7 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
                                   className="w-full h-full object-cover"
                                 />
                                 <span className="absolute bottom-0.5 right-0.5 text-[7px] font-bold bg-black/75 text-white px-1 rounded">
-                                  P{pIdx + 1}
+                                  {index + 1}.{pIdx + 1}
                                 </span>
                               </div>
                             ))}
@@ -350,7 +375,7 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
                         </div>
                       </td>
 
-                      {/* 6. Two-Tier In-Row Sign-Off Cell */}
+                      {/* 6. Sign-off */}
                       <td className="border border-slate-800 p-0 text-[10px]">
                         <div className="p-1.5 border-b border-slate-300 space-y-0.5">
                           <span className="text-[8px] font-bold uppercase text-slate-500 block">
@@ -379,7 +404,7 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
           </table>
         </div>
 
-        {/* FORMAL MASTER SIGN-OFF BLOCK AT FOOTER */}
+        {/* MASTER SIGN-OFF BLOCK */}
         <div
           className="pt-6 border-t-2 border-slate-900 break-inside-avoid space-y-3"
           style={{ breakInside: "avoid" }}
@@ -422,6 +447,114 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
             </div>
           </div>
         </div>
+
+        {/* ========================================================================= */}
+        {/* 3. OPTIONAL HIGH-RESOLUTION PHOTOGRAPHIC APPENDIX (PRINT PAGE BREAK) */}
+        {/* ========================================================================= */}
+        {includeAppendix && (
+          <div className="pt-8 space-y-8" style={{ breakBefore: "page" }}>
+            <div className="border-b-2 border-slate-900 pb-2 flex justify-between items-end">
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 block">
+                  Residensi Damai DLP Audit Document
+                </span>
+                <h2 className="text-lg font-black text-slate-950 uppercase">
+                  Photographic Evidence Appendix
+                </h2>
+              </div>
+              <span className="text-xs font-bold text-slate-600">
+                Index Reference Plates
+              </span>
+            </div>
+
+            <div className="space-y-8">
+              {filteredReportDefects.map((defect, dIdx) => {
+                const photoList =
+                  defect.photoUrls && defect.photoUrls.length > 0
+                    ? defect.photoUrls
+                    : [defect.photoUrl].filter(Boolean);
+
+                if (photoList.length === 0) return null;
+
+                return (
+                  <div
+                    key={`appendix_${defect.id || dIdx}`}
+                    className="border border-slate-400 rounded-lg p-4 bg-slate-50/50 break-inside-avoid space-y-3"
+                    style={{ breakInside: "avoid" }}
+                  >
+                    {/* Appendix Plate Header */}
+                    <div className="flex justify-between items-start border-b border-slate-300 pb-2">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-xs font-black bg-slate-900 text-white px-2 py-0.5 rounded">
+                            Plate #{dIdx + 1}
+                          </span>
+                          <span className="text-xs font-bold text-blue-900 bg-blue-100 px-2 py-0.5 rounded">
+                            {defect.trade}
+                          </span>
+                          <span className="text-xs font-black text-slate-900">
+                            {defect.item}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-600 mt-1 font-medium">
+                          <strong>Location:</strong> {defect.location || "Common Property"}
+                        </p>
+                      </div>
+
+                      <div className="text-right text-[11px]">
+                        <span
+                          className={`font-bold px-2 py-0.5 rounded text-[10px] ${
+                            defect.severity === "High"
+                              ? "bg-rose-100 text-rose-800"
+                              : "bg-amber-100 text-amber-800"
+                          }`}
+                        >
+                          {defect.severity} Severity
+                        </span>
+                        <p className="text-[10px] text-slate-500 mt-0.5 font-mono">
+                          Logged: {defect.date || "N/A"}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Rectification Note */}
+                    {defect.desc && (
+                      <div className="text-xs text-slate-800 bg-white p-2 rounded border border-slate-200 italic">
+                        <strong>Work Order / Rectification Instructions:</strong> {defect.desc}
+                      </div>
+                    )}
+
+                    {/* High-Resolution Evidence Photo Plates (2-Up Grid) */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                      {photoList.map((url, pIdx) => (
+                        <div
+                          key={pIdx}
+                          onClick={() => onOpenGallery && onOpenGallery(photoList, pIdx)}
+                          className="space-y-1 cursor-pointer group"
+                        >
+                          <div className="relative aspect-video w-full bg-black rounded-lg overflow-hidden border border-slate-300 shadow-sm">
+                            <img
+                              src={url}
+                              alt={`Plate ${dIdx + 1} Photo ${pIdx + 1}`}
+                              className="w-full h-full object-cover group-hover:scale-[1.02] transition"
+                            />
+                            <span className="absolute bottom-1.5 right-1.5 text-[9px] font-black bg-black/80 text-white px-2 py-0.5 rounded">
+                              Photo {dIdx + 1}.{pIdx + 1}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center text-[10px] text-slate-500 px-1 font-mono">
+                            <span>Evidence Ref: RD-IMG-{dIdx + 1}-{pIdx + 1}</span>
+                            <span>Click to Zoom</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
       </div>
     </div>
