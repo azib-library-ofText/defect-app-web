@@ -49,7 +49,9 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
   // Executive Summary Metrics for current filtered scope
   const summary = useMemo(() => {
     const total = filteredReportDefects.length;
-    const rectified = filteredReportDefects.filter((d) => d.status === "Rectified" || d.status === "Rectified / Closed").length;
+    const rectified = filteredReportDefects.filter(
+      (d) => d.status === "Rectified" || d.status === "Rectified / Closed"
+    ).length;
     const inProgress = filteredReportDefects.filter((d) => d.status === "In Progress").length;
     const pending = filteredReportDefects.filter((d) => d.status === "Pending Rectification").length;
     const high = filteredReportDefects.filter((d) => d.severity === "High").length;
@@ -87,7 +89,8 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
     ];
 
     const rows = filteredReportDefects.map((d, index) => {
-      const photoList = d.photoUrls && d.photoUrls.length > 0 ? d.photoUrls : [d.photoUrl].filter(Boolean);
+      const photoList =
+        d.photoUrls && d.photoUrls.length > 0 ? d.photoUrls : [d.photoUrl].filter(Boolean);
       return [
         `"RD-DEF-${(index + 1).toString().padStart(4, "0")}"`,
         `"${d.date || ""}"`,
@@ -105,7 +108,9 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
       ];
     });
 
-    const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const csvContent =
+      "data:text/csv;charset=utf-8,\uFEFF" +
+      [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
@@ -241,7 +246,6 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
       {/* 2. PRINTABLE AUDIT REPORT SHEET (VISIBLE ON SCREEN & PRINT) */}
       {/* ========================================================================= */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-8 space-y-6 print:p-0 print:border-none print:shadow-none">
-        
         {/* FORMAL REPORT HEADER */}
         <div className="border-b-2 border-slate-900 pb-4 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div>
@@ -262,13 +266,23 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
 
           <div className="text-left sm:text-right space-y-1">
             <p className="text-[11px] text-slate-500">
-              Report Date: <strong className="text-slate-900">{new Date().toLocaleDateString("en-MY", { year: "numeric", month: "long", day: "numeric" })}</strong>
+              Report Date:{" "}
+              <strong className="text-slate-900">
+                {new Date().toLocaleDateString("en-MY", {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric"
+                })}
+              </strong>
             </p>
             <p className="text-[11px] text-slate-500">
               Inspector: <strong className="text-slate-900">{inspectorTag || "Staff Inspector"}</strong>
             </p>
             <p className="text-[11px] text-slate-500">
-              Export ID: <span className="font-mono font-bold text-slate-700">RD-DLP-{Date.now().toString().slice(-6)}</span>
+              Export ID:{" "}
+              <span className="font-mono font-bold text-slate-700">
+                RD-DLP-{Date.now().toString().slice(-6)}
+              </span>
             </p>
           </div>
         </div>
@@ -298,7 +312,8 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
                 <CheckCircle2 className="w-3 h-3" /> Closed
               </span>
               <span className="text-xl font-black text-emerald-900">
-                {summary.rectified} <span className="text-xs font-semibold">({summary.completionRate}%)</span>
+                {summary.rectified}{" "}
+                <span className="text-xs font-semibold">({summary.completionRate}%)</span>
               </span>
             </div>
             <div className="p-3 rounded-xl border border-rose-200 bg-rose-50/50 col-span-2 sm:col-span-1">
@@ -310,7 +325,7 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
           </div>
         </div>
 
-        {/* AUDIT DEFECT REGISTER LIST / TABLE */}
+        {/* AUDIT DEFECT REGISTER LIST */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-500">
@@ -384,10 +399,10 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
                       </div>
                     </div>
 
-                    {/* Defect Metadata & Photo Split */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
-                      {/* Left: Location & Specific Rectification Notes */}
-                      <div className="md:col-span-2 space-y-2 text-xs">
+                    {/* Defect Metadata & Photo Split (Fixed Proportions) */}
+                    <div className="grid grid-cols-12 gap-3 pt-1">
+                      {/* Left: Location & Specific Rectification Notes (7 cols) */}
+                      <div className="col-span-12 sm:col-span-7 space-y-2 text-xs">
                         <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-200">
                           <span className="font-bold text-slate-700 block mb-0.5">Location Hierarchy:</span>
                           <p className="text-slate-800 font-medium">{defect.location || "Common Property"}</p>
@@ -409,29 +424,29 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
                         )}
                       </div>
 
-                      {/* Right: ImgBB Evidence Thumbnails (Compact 2x2 Grid) */}
-                      <div className="space-y-1">
+                      {/* Right: ImgBB Evidence Thumbnails (5 cols) */}
+                      <div className="col-span-12 sm:col-span-5 space-y-1">
                         <span className="text-[10px] font-bold uppercase text-slate-500 block">
                           Attached Photos ({photoList.length}/4):
                         </span>
                         {photoList.length === 0 ? (
-                          <div className="h-28 bg-slate-100 rounded-lg border border-dashed border-slate-300 flex items-center justify-center text-slate-400 text-xs font-semibold">
+                          <div className="h-32 bg-slate-100 rounded-lg border border-dashed border-slate-300 flex items-center justify-center text-slate-400 text-xs font-semibold">
                             No Photo Uploaded
                           </div>
                         ) : (
-                          <div className="grid grid-cols-2 gap-1.5">
+                          <div className="grid grid-cols-2 gap-2">
                             {photoList.slice(0, 4).map((url, pIdx) => (
                               <div
                                 key={pIdx}
                                 onClick={() => onOpenGallery && onOpenGallery(photoList, pIdx)}
-                                className="relative h-20 bg-slate-100 rounded-lg overflow-hidden border border-slate-200 cursor-pointer group"
+                                className="relative aspect-video w-full bg-slate-900 rounded-lg overflow-hidden border border-slate-300 cursor-pointer group"
                               >
                                 <img
                                   src={url}
                                   alt={`Evidence ${pIdx + 1}`}
                                   className="w-full h-full object-cover group-hover:scale-105 transition"
                                 />
-                                <span className="absolute bottom-1 right-1 text-[8px] font-black bg-black/75 text-white px-1 py-0.2 rounded">
+                                <span className="absolute bottom-1 right-1 text-[8px] font-black bg-black/75 text-white px-1.5 py-0.5 rounded">
                                   P{pIdx + 1}
                                 </span>
                               </div>
@@ -450,7 +465,10 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
         {/* ========================================================================= */}
         {/* 3. FORMAL DLP SIGN-OFF BLOCK */}
         {/* ========================================================================= */}
-        <div className="pt-8 border-t-2 border-slate-900 break-inside-avoid space-y-4" style={{ breakInside: "avoid" }}>
+        <div
+          className="pt-8 border-t-2 border-slate-900 break-inside-avoid space-y-4"
+          style={{ breakInside: "avoid" }}
+        >
           <h3 className="text-xs font-black uppercase tracking-wider text-slate-900">
             DLP Verification & Handover Sign-Off
           </h3>
@@ -495,7 +513,6 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
             </div>
           </div>
         </div>
-
       </div>
     </div>
   );
