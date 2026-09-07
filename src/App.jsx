@@ -85,7 +85,7 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState("All");
   const [groupByMode, setGroupByMode] = useState("chronological");
-  const [activeMainZone, setActiveMainZone] = useState(null); // null = unselected (clean state), "ALL" = view everything
+  const [activeMainZone, setActiveMainZone] = useState(null); // null = clean state, "ALL" = view everything
   const [activeSubZone, setActiveSubZone] = useState(null);
 
   // Edit Defect state
@@ -167,13 +167,27 @@ export default function App() {
     setSelectedItem(TRADE_CATALOG[selectedTrade].elements[elementName].items[0]);
   };
 
+  // Add photos with 4-photo ceiling & 1600px crisp resolution
   const handleAddPhotos = async (e) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
 
-    for (const file of files) {
+    const availableSlots = 4 - capturedPhotos.length;
+    if (availableSlots <= 0) {
+      alert("Maximum 4 photos allowed per defect.");
+      e.target.value = "";
+      return;
+    }
+
+    if (files.length > availableSlots) {
+      alert(`You can only attach ${availableSlots} more photo(s). Only the first ${availableSlots} will be attached.`);
+    }
+
+    const filesToProcess = files.slice(0, availableSlots);
+
+    for (const file of filesToProcess) {
       try {
-        const compressedDataUrl = await compressImage(file, 800, 0.6);
+        const compressedDataUrl = await compressImage(file, 1600, 0.82);
         setCapturedPhotos((prev) => [
           ...prev,
           {
@@ -284,15 +298,13 @@ export default function App() {
     return counts;
   }, [defects]);
 
-  // Dynamic counts for Tier 2 sub-layers within the active main zone
+  // Dynamic counts for Tier 2 sub-layers within active main zone
   const subLayerOptions = useMemo(() => {
     if (!activeMainZone || activeMainZone === "ALL") return [];
     
-    // Check known sub-layers from constants
     const config = ZONE_OPTIONS[activeMainZone];
     const knownKeys = config?.floors || config?.areas || config?.wings || [];
     
-    // Also include any logged subLayer or location strings
     const subCounts = {};
     defects.filter((d) => d.zoneId === activeMainZone).forEach((d) => {
       const k = d.subLayer || "General";
@@ -703,7 +715,7 @@ export default function App() {
               <div className="flex items-center justify-between border-b pb-2">
                 <h2 className="text-xs font-black text-slate-700 uppercase tracking-wider flex items-center gap-2">
                   <Camera className="w-4 h-4 text-blue-600" />
-                  4. Photo Evidence ({capturedPhotos.length} Attached)
+                  4. Photo Evidence ({capturedPhotos.length}/4 Attached)
                 </h2>
               </div>
 
@@ -749,20 +761,26 @@ export default function App() {
 
               <div className="border-2 border-dashed border-slate-300 rounded-2xl p-5 text-center bg-slate-50 space-y-3">
                 <Camera className="w-8 h-8 text-blue-600 mx-auto" />
-                <p className="text-xs font-bold text-slate-800">Attach Defect Photos (Auto uploads to ImgBB)</p>
+                <p className="text-xs font-bold text-slate-800">Attach Defect Photos (Max 4, High Resolution)</p>
 
-                <label className="cursor-pointer inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-md transition">
-                  <Plus className="w-4 h-4" />
-                  <span>Snap / Upload Photos</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    capture="environment"
-                    onChange={handleAddPhotos}
-                    className="hidden"
-                  />
-                </label>
+                {capturedPhotos.length < 4 ? (
+                  <label className="cursor-pointer inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-md transition">
+                    <Plus className="w-4 h-4" />
+                    <span>Snap / Upload Photos ({capturedPhotos.length}/4)</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      capture="environment"
+                      onChange={handleAddPhotos}
+                      className="hidden"
+                    />
+                  </label>
+                ) : (
+                  <div className="text-xs text-amber-700 font-bold bg-amber-50 border border-amber-200 py-2.5 px-4 rounded-xl inline-block">
+                    Photo limit reached (4 of 4 attached)
+                  </div>
+                )}
               </div>
 
               <button
@@ -789,7 +807,6 @@ export default function App() {
         {/* TAB 2: MASTER REGISTER WITH 2-TIER DRILL-DOWN */}
         {activeTab === "records" && (
           <div className="space-y-4">
-            {/* Search, Status & Grouping Controls */}
             <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-3">
                 <div>
@@ -874,7 +891,6 @@ export default function App() {
                 </div>
 
                 <div className="flex flex-wrap gap-2">
-                  {/* View All Option */}
                   <button
                     type="button"
                     onClick={() => {
@@ -897,7 +913,6 @@ export default function App() {
                     </span>
                   </button>
 
-                  {/* Specific Zones from ZONE_OPTIONS */}
                   {Object.keys(ZONE_OPTIONS).map((zKey) => {
                     const zone = ZONE_OPTIONS[zKey];
                     const count = mainZoneCounts[zKey] || 0;
@@ -930,7 +945,7 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Tier 2: Sub-Levels / Floors (Appears dynamically when a main zone is chosen) */}
+              {/* Tier 2: Sub-Levels / Floors */}
               {activeMainZone && activeMainZone !== "ALL" && subLayerOptions.length > 0 && (
                 <div className="pt-3 border-t border-slate-100">
                   <div className="flex items-center justify-between mb-2">
@@ -978,7 +993,7 @@ export default function App() {
               )}
             </div>
 
-            {/* DEFECT LIST OR EMPTY/PROMPT STATE */}
+            {/* DEFECT LIST OR EMPTY STATE */}
             {!activeMainZone ? (
               <div className="bg-white p-12 rounded-2xl border border-slate-200 text-center space-y-3">
                 <div className="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto shadow-sm">
