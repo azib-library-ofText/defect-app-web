@@ -14,7 +14,9 @@ import {
   ArrowUpDown
 } from "lucide-react";
 
-export const IMGBB_API_KEY = "d33722684b4c4a41af62e5bcdc849b0a";
+// Cloudinary Configuration
+export const CLOUDINARY_CLOUD_NAME = "swsv810w";
+export const CLOUDINARY_UPLOAD_PRESET = "damai_defects"; // Change this if you named your preset differently in Cloudinary Settings
 
 export const ADMIN_EMAILS = ["terekked@gmail.com", "azibrusli@gmail.com"];
 

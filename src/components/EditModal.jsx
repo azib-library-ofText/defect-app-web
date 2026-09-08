@@ -2,7 +2,8 @@
 import React, { useState } from "react";
 import { doc, updateDoc } from "firebase/firestore";
 import { db, TRADE_CATALOG, ZONE_OPTIONS } from "../constants.jsx";
-import { compressImage, uploadToImgBB } from "../utils.js";
+import { compressImage, uploadToCloudinary } from "../utils.js";
+import { useUploadTracker } from "../useRateTracker.js";
 import {
   X,
   Plus,
@@ -23,7 +24,10 @@ export default function EditModal({ defect, currentUser, onClose, onSaveComplete
   const [desc, setDesc] = useState(defect.desc || "");
   const [specificLandmark, setSpecificLandmark] = useState("");
 
-  // Existing URLs from ImgBB / Firestore
+  // Rate Tracker instance to track uploads from EditModal
+  const { recordUploads } = useUploadTracker(100);
+
+  // Existing URLs from Cloudinary / Firestore
   const initialPhotos = Array.isArray(defect.photoUrls) && defect.photoUrls.length > 0
     ? defect.photoUrls
     : [defect.photoUrl].filter(Boolean);
@@ -92,14 +96,19 @@ export default function EditModal({ defect, currentUser, onClose, onSaveComplete
     }
 
     setIsSaving(true);
-    setSyncStatus("Uploading new photos to ImgBB...");
+    setSyncStatus("Uploading new photos to Cloudinary...");
 
     try {
       const uploadedUrls = [];
       for (let i = 0; i < newPhotos.length; i++) {
-        setSyncStatus(`Uploading photo ${i + 1} of ${newPhotos.length} to ImgBB...`);
-        const url = await uploadToImgBB(newPhotos[i]);
+        setSyncStatus(`Uploading photo ${i + 1} of ${newPhotos.length} to Cloudinary...`);
+        const url = await uploadToCloudinary(newPhotos[i]);
         uploadedUrls.push(url);
+      }
+
+      // Record any newly uploaded photos against the hourly quota
+      if (uploadedUrls.length > 0) {
+        recordUploads(uploadedUrls.length);
       }
 
       setSyncStatus("Updating defect in Firestore...");

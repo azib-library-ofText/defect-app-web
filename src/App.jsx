@@ -10,7 +10,8 @@ import {
   ZONE_OPTIONS,
   ADMIN_EMAILS
 } from "./constants.jsx";
-import { compressImage, uploadToImgBB } from "./utils.js";
+import { compressImage, uploadToCloudinary } from "./utils.js";
+import { useUploadTracker } from "./useRateTracker.js";
 import Annotator from "./components/Annotator.jsx";
 import EditModal from "./components/EditModal.jsx";
 import ReportGenerator from "./components/ReportGenerator.jsx";
@@ -51,6 +52,9 @@ export default function App() {
   const [isAtTop, setIsAtTop] = useState(true);
   const [showBottomNav, setShowBottomNav] = useState(true);
   const lastScrollY = useRef(0);
+
+  // Live Hourly Upload Tracker (defaults to 100 uploads/hr quota)
+  const { count: uploadCount, hourlyLimit, isNearLimit, isAtLimit, recordUploads } = useUploadTracker(100);
 
   // Inspector & Building
   const [inspectorTag, setInspectorTag] = useState("Residensi Damai");
@@ -211,13 +215,13 @@ export default function App() {
     }
 
     setIsSyncing(true);
-    setSyncStatusText("Uploading images to ImgBB CDN...");
+    setSyncStatusText("Uploading images to Cloudinary CDN...");
 
     try {
       const hostedUrls = [];
       for (let i = 0; i < capturedPhotos.length; i++) {
-        setSyncStatusText(`Uploading photo ${i + 1} of ${capturedPhotos.length} to ImgBB...`);
-        const url = await uploadToImgBB(capturedPhotos[i].dataUrl);
+        setSyncStatusText(`Uploading photo ${i + 1} of ${capturedPhotos.length} to Cloudinary...`);
+        const url = await uploadToCloudinary(capturedPhotos[i].dataUrl);
         hostedUrls.push(url);
       }
 
@@ -249,6 +253,9 @@ export default function App() {
       };
 
       await addDoc(collection(db, "defects"), newDefectData);
+
+      // Record successful uploads in local rate tracker
+      recordUploads(capturedPhotos.length);
 
       setCustomDescription("");
       setCapturedPhotos([]);
@@ -390,7 +397,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-100 text-slate-900 font-sans antialiased pb-28">
-      {/* HEADER */}
+      {/* HEADER WITH LIVE UPLOAD LIMIT HEALTH BADGE */}
       <header
         className={`fixed top-0 left-0 right-0 z-40 bg-slate-950 text-white shadow-md transition-transform duration-300 print:hidden ${
           isAtTop ? "translate-y-0" : "-translate-y-full"
@@ -415,6 +422,31 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Live Upload Tracker Badge */}
+            <div
+              className={`flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full border transition-colors ${
+                isAtLimit
+                  ? "bg-rose-950/70 border-rose-600 text-rose-300"
+                  : isNearLimit
+                  ? "bg-amber-950/70 border-amber-600 text-amber-300"
+                  : "bg-slate-900 border-slate-700 text-slate-300"
+              }`}
+              title="Rolling 60-minute upload activity"
+            >
+              <span
+                className={`w-2 h-2 rounded-full ${
+                  isAtLimit
+                    ? "bg-rose-500 animate-pulse"
+                    : isNearLimit
+                    ? "bg-amber-400 animate-pulse"
+                    : "bg-emerald-400"
+                }`}
+              />
+              <span>
+                Uploads: {uploadCount}/{hourlyLimit}
+              </span>
+            </div>
+
             <button
               onClick={() => signOut(auth)}
               className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl transition"
