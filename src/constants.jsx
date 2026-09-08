@@ -16,7 +16,7 @@ import {
 
 // Cloudinary Configuration
 export const CLOUDINARY_CLOUD_NAME = "swsv810w";
-export const CLOUDINARY_UPLOAD_PRESET = "damai_defects"; // Change this if you named your preset differently in Cloudinary Settings
+export const CLOUDINARY_UPLOAD_PRESET = "damai_preset"; // Change this if you named your preset differently in Cloudinary Settings
 
 export const ADMIN_EMAILS = ["terekked@gmail.com", "azibrusli@gmail.com"];
 
