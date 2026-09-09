@@ -13,7 +13,7 @@ import {
   AlertCircle
 } from "lucide-react";
 
-export default function EditModal({ defect, currentUser, onClose, onSaveComplete }) {
+export default function EditModal({ defect, currentUser, onClose, onSaveComplete, onDelete }) {
   const [trade, setTrade] = useState(defect.trade || "Civil & Structural");
   const [element, setElement] = useState(
     defect.element || Object.keys(TRADE_CATALOG[defect.trade || "Civil & Structural"]?.elements || {})[0] || ""
@@ -338,33 +338,50 @@ export default function EditModal({ defect, currentUser, onClose, onSaveComplete
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center justify-end gap-2 pt-2 border-t">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={isSaving}
-            className="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-800 rounded-xl hover:bg-slate-100 transition"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={isSaving}
-            className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-bold rounded-xl shadow-md transition flex items-center gap-2"
-          >
-            {isSaving ? (
-              <>
-                <UploadCloud className="w-4 h-4 animate-spin" />
-                <span>{syncStatus || "Saving..."}</span>
-              </>
-            ) : (
-              <>
-                <Check className="w-4 h-4" />
-                <span>Save Changes</span>
-              </>
-            )}
-          </button>
+        <div className="flex items-center justify-between gap-2 pt-3 border-t">
+          {/* Delete Record Button */}
+          {onDelete ? (
+            <button
+              type="button"
+              onClick={onDelete}
+              disabled={isSaving}
+              className="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 disabled:opacity-50 text-rose-700 text-xs font-bold rounded-xl border border-rose-200 transition flex items-center gap-1.5"
+            >
+              <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+              <span>Delete Record</span>
+            </button>
+          ) : (
+            <div />
+          )}
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={isSaving}
+              className="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-800 rounded-xl hover:bg-slate-100 transition"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={isSaving}
+              className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-bold rounded-xl shadow-md transition flex items-center gap-2"
+            >
+              {isSaving ? (
+                <>
+                  <UploadCloud className="w-4 h-4 animate-spin" />
+                  <span>{syncStatus || "Saving..."}</span>
+                </>
+              ) : (
+                <>
+                  <Check className="w-4 h-4" />
+                  <span>Save Changes</span>
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </div>

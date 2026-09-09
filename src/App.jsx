@@ -1,7 +1,15 @@
 // src/App.jsx
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import { signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "firebase/auth";
-import { collection, addDoc, updateDoc, doc, onSnapshot, query } from "firebase/firestore";
+import { 
+  collection, 
+  addDoc, 
+  updateDoc, 
+  deleteDoc, 
+  doc, 
+  onSnapshot, 
+  query 
+} from "firebase/firestore";
 import {
   auth,
   db,
@@ -275,6 +283,32 @@ export default function App() {
       await updateDoc(doc(db, "defects", defectId), { status: newStatus });
     } catch (err) {
       console.error("Error updating status:", err);
+    }
+  };
+
+  const handleDeleteDefect = async (defect) => {
+    const isAdmin = ADMIN_EMAILS.includes(user?.email?.toLowerCase());
+    const isAuthor = defect.loggedBy === user?.displayName || defect.loggedBy === inspectorTag;
+
+    if (!isAdmin && !isAuthor) {
+      alert("You do not have permission to delete this defect record.");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Are you sure you want to permanently delete this defect?\n\nLocation: ${defect.location}\nItem: ${defect.item || defect.desc}`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      await deleteDoc(doc(db, "defects", defect.id));
+      if (editingDefect?.id === defect.id) {
+        setEditingDefect(null);
+      }
+    } catch (err) {
+      console.error("Error deleting defect:", err);
+      alert(`Failed to delete defect: ${err.message}`);
     }
   };
 
@@ -1084,6 +1118,7 @@ export default function App() {
 
                               <div className="flex sm:flex-col items-center sm:items-end justify-between gap-2 border-t sm:border-t-0 pt-2 sm:pt-0">
                                 <div className="flex items-center gap-1.5">
+                                  {/* Edit Button */}
                                   <button
                                     onClick={() => setEditingDefect(d)}
                                     className="p-1.5 px-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold flex items-center gap-1 border border-slate-200 transition"
@@ -1091,6 +1126,16 @@ export default function App() {
                                   >
                                     <Edit3 className="w-3.5 h-3.5 text-blue-600" />
                                     <span>Edit</span>
+                                  </button>
+
+                                  {/* Delete Button */}
+                                  <button
+                                    onClick={() => handleDeleteDefect(d)}
+                                    className="p-1.5 px-2.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl text-xs font-bold flex items-center gap-1 border border-rose-200 transition"
+                                    title="Delete Defect"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                    <span>Delete</span>
                                   </button>
 
                                   <select
@@ -1201,6 +1246,7 @@ export default function App() {
           currentUser={user}
           onClose={() => setEditingDefect(null)}
           onSaveComplete={() => setEditingDefect(null)}
+          onDelete={() => handleDeleteDefect(editingDefect)}
         />
       )}
 
