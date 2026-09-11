@@ -1,0 +1,13 @@
+{
+  "projects": {},
+  "targets": {
+    "defect---residensi-damai": {
+      "hosting": {
+        "app": [
+          "defect---residensi-damai"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}

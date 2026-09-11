@@ -1,388 +1,307 @@
 // src/components/EditModal.jsx
-import React, { useState } from "react";
-import { doc, updateDoc } from "firebase/firestore";
-import { db, TRADE_CATALOG, ZONE_OPTIONS } from "../constants.jsx";
-import { compressImage, uploadToCloudinary } from "../utils.js";
-import { useUploadTracker } from "../useRateTracker.js";
-import {
-  X,
-  Plus,
-  Trash2,
-  UploadCloud,
-  Check,
-  AlertCircle
+import React, { useState, useMemo } from "react";
+import { doc, updateDoc, deleteDoc, arrayUnion } from "firebase/firestore";
+import { db, ZONE_OPTIONS, TRADE_CATALOG, ADMIN_EMAILS } from "../constants.jsx";
+import { 
+  X, 
+  Trash2, 
+  Save, 
+  MapPin, 
+  History
 } from "lucide-react";
 
-export default function EditModal({ defect, currentUser, onClose, onSaveComplete, onDelete }) {
+export default function EditModal({ defect, currentUser, onClose, onSaveComplete }) {
+  if (!defect) return null;
+
+  const userEmail = currentUser?.email || "";
+  const isAdmin = ADMIN_EMAILS.includes(userEmail);
+
+  // State Pilihan Lokasi Penuh (Boleh Ubah Semula Dari Awal)
+  const [selectedZone, setSelectedZone] = useState(defect.zoneId || "Ground");
+  const [groundArea, setGroundArea] = useState(defect.subLayer || ZONE_OPTIONS.Ground.areas[0]);
+  const [carparkFloor, setCarparkFloor] = useState(defect.subLayer || ZONE_OPTIONS.Carpark.floors[0]);
+  const [carparkBay, setCarparkBay] = useState(ZONE_OPTIONS.Carpark.baysByFloor["Level 1A"]?.[0] || "");
+  const [facilityArea, setFacilityArea] = useState(defect.subLayer || ZONE_OPTIONS.Facility.areas[0]);
+  const [residentialFloor, setResidentialFloor] = useState(defect.subLayer || ZONE_OPTIONS.Residential.floors[0]);
+  const [residentialArea, setResidentialArea] = useState("Corridor & Lift Lobby Area");
+  const [staircaseWing, setStaircaseWing] = useState(defect.subLayer || ZONE_OPTIONS.Staircase.wings[0]);
+  const [staircaseFlight, setStaircaseFlight] = useState(ZONE_OPTIONS.Staircase.flights[1]);
+  const [rooftopArea, setRooftopArea] = useState(defect.subLayer || ZONE_OPTIONS.Rooftop.areas[0]);
+  const [landmarkNote, setLandmarkNote] = useState("");
+
   const [trade, setTrade] = useState(defect.trade || "Civil & Structural");
-  const [element, setElement] = useState(
-    defect.element || Object.keys(TRADE_CATALOG[defect.trade || "Civil & Structural"]?.elements || {})[0] || ""
-  );
+  const [element, setElement] = useState(defect.element || Object.keys(TRADE_CATALOG[defect.trade || "Civil & Structural"]?.elements || {})[0] || "");
   const [item, setItem] = useState(defect.item || "");
-  const [severity, setSeverity] = useState(defect.severity || "Medium");
   const [status, setStatus] = useState(defect.status || "Pending Rectification");
+  const [severity, setSeverity] = useState(defect.severity || "Medium");
   const [desc, setDesc] = useState(defect.desc || "");
-  const [specificLandmark, setSpecificLandmark] = useState("");
+  const [photoUrls, setPhotoUrls] = useState(
+    defect.photoUrls && defect.photoUrls.length > 0
+      ? defect.photoUrls
+      : [defect.photoUrl].filter(Boolean)
+  );
 
-  // Rate Tracker instance to track uploads from EditModal
-  const { recordUploads } = useUploadTracker(100);
-
-  // Existing URLs from Cloudinary / Firestore
-  const initialPhotos = Array.isArray(defect.photoUrls) && defect.photoUrls.length > 0
-    ? defect.photoUrls
-    : [defect.photoUrl].filter(Boolean);
-
-  const [existingPhotos, setExistingPhotos] = useState(initialPhotos);
-  // Newly attached base64 photos to be uploaded
-  const [newPhotos, setNewPhotos] = useState([]);
+  const [editReason, setEditReason] = useState("Pembetulan Lokasi (Wrong Location Correction)");
+  const [photoSubReason, setPhotoSubReason] = useState("Foto tambahan untuk perincian sedia ada");
   const [isSaving, setIsSaving] = useState(false);
-  const [syncStatus, setSyncStatus] = useState("");
 
-  // Handle Trade selection update
-  const handleTradeChange = (newTrade) => {
-    setTrade(newTrade);
-    const elements = Object.keys(TRADE_CATALOG[newTrade]?.elements || {});
-    const firstElement = elements[0] || "";
-    setElement(firstElement);
-    const items = TRADE_CATALOG[newTrade]?.elements[firstElement]?.items || [];
-    setItem(items[0] || "");
-    setSeverity(TRADE_CATALOG[newTrade]?.elements[firstElement]?.defaultSeverity || "Medium");
-  };
-
-  // Handle Element selection update
-  const handleElementChange = (newElement) => {
-    setElement(newElement);
-    const items = TRADE_CATALOG[trade]?.elements[newElement]?.items || [];
-    setItem(items[0] || "");
-    setSeverity(TRADE_CATALOG[trade]?.elements[newElement]?.defaultSeverity || "Medium");
-  };
-
-  // Add new photos with 4-photo maximum ceiling & high-res compression
-  const handleAddNewPhotos = async (e) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length === 0) return;
-
-    const currentTotal = existingPhotos.length + newPhotos.length;
-    const availableSlots = 4 - currentTotal;
-
-    if (availableSlots <= 0) {
-      alert("Maximum 4 photos allowed per defect. Delete an existing photo first to attach a new one.");
-      e.target.value = "";
-      return;
-    }
-
-    if (files.length > availableSlots) {
-      alert(`You can only add ${availableSlots} more photo(s). Only the first ${availableSlots} will be attached.`);
-    }
-
-    const filesToProcess = files.slice(0, availableSlots);
-
-    for (const file of filesToProcess) {
-      try {
-        const compressed = await compressImage(file, 1600, 0.82);
-        setNewPhotos((prev) => [...prev, compressed]);
-      } catch (err) {
-        console.error("Image compression error:", err);
+  // Bina semula nama lokasi baru sepenuhnya
+  const newLocationTag = useMemo(() => {
+    let loc = "";
+    switch (selectedZone) {
+      case "Ground": loc = `[Ground Floor] ${groundArea}`; break;
+      case "Carpark": loc = `[Podium Carpark ${carparkFloor}] ${carparkBay}`; break;
+      case "Facility": loc = `[Level 8 Facilities] ${facilityArea}`; break;
+      case "Residential": {
+        const floorMatch = residentialFloor.match(/Level\s+(\w+)/);
+        const floorName = floorMatch ? `Level ${floorMatch[1]} Residential` : residentialFloor;
+        loc = `[${floorName}] ${residentialArea}`;
+        break;
       }
+      case "Staircase": loc = `[Emergency Staircase] ${staircaseWing} (${staircaseFlight})`; break;
+      case "Rooftop": loc = `[Level 27 Rooftop] ${rooftopArea}`; break;
+      default: loc = defect.location || "[Residensi Damai] Common Property";
     }
-    e.target.value = "";
-  };
+    if (landmarkNote.trim()) return `${loc} • ${landmarkNote.trim()}`;
+    return loc;
+  }, [selectedZone, groundArea, carparkFloor, carparkBay, facilityArea, residentialFloor, residentialArea, staircaseWing, staircaseFlight, rooftopArea, landmarkNote, defect.location]);
 
-  const handleSave = async () => {
-    const totalPhotos = existingPhotos.length + newPhotos.length;
-    if (totalPhotos === 0) {
-      alert("Defect must have at least one photo attached.");
+  const currentSubLayer = useMemo(() => {
+    switch (selectedZone) {
+      case "Ground": return groundArea;
+      case "Carpark": return carparkFloor;
+      case "Facility": return facilityArea;
+      case "Residential": return residentialFloor;
+      case "Staircase": return staircaseWing;
+      case "Rooftop": return rooftopArea;
+      default: return selectedZone;
+    }
+  }, [selectedZone, groundArea, carparkFloor, facilityArea, residentialFloor, staircaseWing, rooftopArea]);
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    if (photoUrls.length === 0) {
+      alert("Mesti ada sekurang-kurangnya 1 keping foto.");
       return;
     }
 
     setIsSaving(true);
-    setSyncStatus("Uploading new photos to Cloudinary...");
-
     try {
-      const uploadedUrls = [];
-      for (let i = 0; i < newPhotos.length; i++) {
-        setSyncStatus(`Uploading photo ${i + 1} of ${newPhotos.length} to Cloudinary...`);
-        const url = await uploadToCloudinary(newPhotos[i]);
-        uploadedUrls.push(url);
-      }
+      const now = new Date();
+      const timeString = now.toLocaleString("en-MY", {
+        timeZone: "Asia/Kuala_Lumpur",
+        year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit"
+      });
 
-      // Record any newly uploaded photos against the hourly quota
-      if (uploadedUrls.length > 0) {
-        recordUploads(uploadedUrls.length);
-      }
+      const auditLog = `[${timeString} by ${userEmail}] • Sebab: ${editReason} • Lokasi baru: '${newLocationTag}'`;
 
-      setSyncStatus("Updating defect in Firestore...");
-      const finalPhotoList = [...existingPhotos, ...uploadedUrls];
-
-      let updatedLocation = defect.location;
-      if (specificLandmark.trim()) {
-        updatedLocation = `${defect.location} • ${specificLandmark.trim()}`;
-      }
-
-      const editEntry = {
-        editedAt: Date.now(),
-        editedBy: currentUser?.displayName || currentUser?.email || "Inspector",
-        previousStatus: defect.status,
-        newStatus: status
-      };
-
-      const updatedData = {
+      const defectRef = doc(db, "defects", defect.id);
+      await updateDoc(defectRef, {
+        location: newLocationTag,
+        zoneId: selectedZone,
+        subLayer: currentSubLayer,
         trade,
         element,
         item,
-        severity,
         status,
+        severity,
         desc: desc.trim(),
-        location: updatedLocation,
-        photoUrls: finalPhotoList,
-        photoUrl: finalPhotoList[0] || "",
-        editHistory: [...(defect.editHistory || []), editEntry]
-      };
+        photoUrls,
+        photoUrl: photoUrls[0] || "",
+        updatedAt: Date.now(),
+        updatedBy: userEmail,
+        editHistory: arrayUnion(auditLog)
+      });
 
-      await updateDoc(doc(db, "defects", defect.id), updatedData);
+      setIsSaving(false);
       if (onSaveComplete) onSaveComplete();
       onClose();
     } catch (err) {
-      console.error("Save defect error:", err);
-      alert(`Update failed: ${err.message || "Network error"}`);
-    } finally {
+      alert("Gagal mengemaskini rekod: " + err.message);
       setIsSaving(false);
-      setSyncStatus("");
     }
   };
 
-  const currentTotalPhotos = existingPhotos.length + newPhotos.length;
-
   return (
-    <div
-      onClick={onClose}
-      className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 overflow-y-auto"
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        className="bg-white rounded-3xl max-w-xl w-full p-5 sm:p-6 shadow-2xl border border-slate-200 my-auto space-y-4 max-h-[92vh] overflow-y-auto"
-      >
-        {/* Modal Header */}
-        <div className="flex items-center justify-between border-b pb-3">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/60 backdrop-blur-xs">
+      <div className="bg-white rounded-2xl max-w-xl w-full p-5 shadow-2xl border border-slate-200 max-h-[92vh] flex flex-col">
+        <div className="flex justify-between items-start border-b border-slate-200 pb-3">
           <div>
-            <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-blue-100 text-blue-800">
+            <span className="text-[10px] font-black uppercase tracking-wider bg-blue-100 text-blue-800 px-2 py-0.5 rounded">
               Edit Defect Record
             </span>
-            <h3 className="font-black text-slate-900 text-sm sm:text-base mt-1">
-              ID: {defect.id}
-            </h3>
+            <h2 className="text-sm font-extrabold text-slate-900 mt-1">
+              ID: <span className="font-mono text-slate-600">{defect.id}</span>
+            </h2>
           </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-xl text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition"
-          >
+          <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700">
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Location Display & Addition */}
-        <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 text-xs space-y-2">
-          <div>
-            <span className="text-slate-500 font-semibold block text-[10px] uppercase">Original Location:</span>
-            <p className="font-bold text-slate-800">{defect.location}</p>
-          </div>
-          <div>
-            <label className="text-slate-500 font-semibold block text-[10px] uppercase mb-1">
-              Append Specific Sub-Note / Landmark (Optional):
-            </label>
-            <input
-              type="text"
-              value={specificLandmark}
-              onChange={(e) => setSpecificLandmark(e.target.value)}
-              placeholder="e.g. Near Column C-12"
-              className="w-full text-xs p-2 bg-white border border-slate-300 rounded-xl font-medium"
-            />
-          </div>
-        </div>
-
-        {/* Status & Severity */}
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-[11px] font-bold text-slate-700 mb-1">Rectification Status:</label>
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-              className="w-full text-xs p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-800"
-            >
-              <option value="Pending Rectification">Pending Rectification</option>
-              <option value="In Progress">In Progress</option>
-              <option value="Rectified">Rectified / Closed</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-[11px] font-bold text-slate-700 mb-1">Severity Rating:</label>
-            <select
-              value={severity}
-              onChange={(e) => setSeverity(e.target.value)}
-              className="w-full text-xs p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold text-slate-800"
-            >
-              <option value="Low">Low</option>
-              <option value="Medium">Medium</option>
-              <option value="High">High</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Classification */}
-        <div className="space-y-2.5">
-          <label className="block text-[11px] font-bold text-slate-700">Classification Trade & Element:</label>
-          <select
-            value={trade}
-            onChange={(e) => handleTradeChange(e.target.value)}
-            className="w-full text-xs p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-semibold"
-          >
-            {Object.keys(TRADE_CATALOG).map((t) => (
-              <option key={t} value={t}>{t}</option>
-            ))}
-          </select>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <select
-              value={element}
-              onChange={(e) => handleElementChange(e.target.value)}
-              className="w-full text-xs p-2 bg-slate-50 border border-slate-300 rounded-xl font-semibold"
-            >
-              {Object.keys(TRADE_CATALOG[trade]?.elements || {}).map((el) => (
-                <option key={el} value={el}>{el}</option>
-              ))}
-            </select>
-
-            <select
-              value={item}
-              onChange={(e) => setItem(e.target.value)}
-              className="w-full text-xs p-2 bg-slate-50 border border-slate-300 rounded-xl font-semibold"
-            >
-              {(TRADE_CATALOG[trade]?.elements[element]?.items || []).map((it) => (
-                <option key={it} value={it}>{it}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {/* Note / Description */}
-        <div>
-          <label className="block text-[11px] font-bold text-slate-700 mb-1">Contractor Rectification Note:</label>
-          <textarea
-            rows={2}
-            value={desc}
-            onChange={(e) => setDesc(e.target.value)}
-            className="w-full text-xs p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-medium"
-          />
-        </div>
-
-        {/* Photo Evidence with 4-Photo Ceiling */}
-        <div className="space-y-2 border-t pt-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-800">
-              Attached Evidence ({currentTotalPhotos}/4)
+        <form onSubmit={handleSave} className="space-y-4 py-4 overflow-y-auto flex-1 pr-1">
+          {/* UBAH LOKASI PENUH */}
+          <div className="bg-blue-50/60 p-3.5 rounded-xl border border-blue-200 space-y-3">
+            <span className="text-[11px] font-black uppercase text-blue-900 flex items-center gap-1.5">
+              <MapPin className="w-3.5 h-3.5 text-blue-600" />
+              Tukar Lokasi / Zon (Boleh Pilih Semula Dari Mula)
             </span>
 
-            {currentTotalPhotos < 4 ? (
-              <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl border border-slate-300 transition">
-                <Plus className="w-4 h-4" />
-                <span>Add Photo ({currentTotalPhotos}/4)</span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  capture="environment"
-                  onChange={handleAddNewPhotos}
-                  className="hidden"
-                />
-              </label>
-            ) : (
-              <span className="text-[11px] font-bold text-amber-600 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-lg">
-                Photo limit reached (4/4)
-              </span>
-            )}
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
-            {/* Existing Saved URLs */}
-            {existingPhotos.map((url, idx) => (
-              <div key={idx} className="relative aspect-video rounded-xl overflow-hidden border border-slate-300 bg-black">
-                <img src={url} alt={`Photo ${idx + 1}`} className="w-full h-full object-cover" />
-                <button
-                  type="button"
-                  onClick={() => setExistingPhotos((prev) => prev.filter((_, i) => i !== idx))}
-                  className="absolute top-1 right-1 w-6 h-6 bg-rose-600 text-white rounded-full flex items-center justify-center shadow"
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div>
+                <label className="block text-[10px] font-bold text-slate-600 mb-1">ZON UTAMA:</label>
+                <select
+                  value={selectedZone}
+                  onChange={(e) => setSelectedZone(e.target.value)}
+                  className="w-full text-xs p-2 bg-white border border-slate-300 rounded-lg font-bold text-slate-800"
                 >
-                  <Trash2 className="w-3 h-3" />
-                </button>
+                  {Object.keys(ZONE_OPTIONS).map((key) => (
+                    <option key={key} value={key}>{ZONE_OPTIONS[key].label}</option>
+                  ))}
+                </select>
               </div>
-            ))}
 
-            {/* Newly Selected Uploads */}
-            {newPhotos.map((dataUrl, idx) => (
-              <div key={idx} className="relative aspect-video rounded-xl overflow-hidden border-2 border-dashed border-blue-500 bg-black">
-                <img src={dataUrl} alt={`New upload ${idx + 1}`} className="w-full h-full object-cover" />
-                <span className="absolute bottom-1 left-1 px-1.5 py-0.2 bg-blue-600 text-white text-[9px] font-bold rounded">
-                  New
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setNewPhotos((prev) => prev.filter((_, i) => i !== idx))}
-                  className="absolute top-1 right-1 w-6 h-6 bg-rose-600 text-white rounded-full flex items-center justify-center shadow"
-                >
-                  <Trash2 className="w-3 h-3" />
-                </button>
+              <div>
+                <label className="block text-[10px] font-bold text-slate-600 mb-1">ARAS / KAWASAN:</label>
+                {selectedZone === "Carpark" && (
+                  <select
+                    value={carparkFloor}
+                    onChange={(e) => setCarparkFloor(e.target.value)}
+                    className="w-full text-xs p-2 bg-white border border-slate-300 rounded-lg font-bold"
+                  >
+                    {ZONE_OPTIONS.Carpark.floors.map((fl) => <option key={fl} value={fl}>{fl}</option>)}
+                  </select>
+                )}
+                {selectedZone === "Residential" && (
+                  <select
+                    value={residentialFloor}
+                    onChange={(e) => setResidentialFloor(e.target.value)}
+                    className="w-full text-xs p-2 bg-white border border-slate-300 rounded-lg font-bold"
+                  >
+                    {ZONE_OPTIONS.Residential.floors.map((fl) => <option key={fl} value={fl}>{fl}</option>)}
+                  </select>
+                )}
+                {selectedZone === "Ground" && (
+                  <select
+                    value={groundArea}
+                    onChange={(e) => setGroundArea(e.target.value)}
+                    className="w-full text-xs p-2 bg-white border border-slate-300 rounded-lg font-bold"
+                  >
+                    {ZONE_OPTIONS.Ground.areas.map((ar) => <option key={ar} value={ar}>{ar}</option>)}
+                  </select>
+                )}
+                {selectedZone === "Facility" && (
+                  <select
+                    value={facilityArea}
+                    onChange={(e) => setFacilityArea(e.target.value)}
+                    className="w-full text-xs p-2 bg-white border border-slate-300 rounded-lg font-bold"
+                  >
+                    {ZONE_OPTIONS.Facility.areas.map((ar) => <option key={ar} value={ar}>{ar}</option>)}
+                  </select>
+                )}
+                {selectedZone === "Staircase" && (
+                  <select
+                    value={staircaseWing}
+                    onChange={(e) => setStaircaseWing(e.target.value)}
+                    className="w-full text-xs p-2 bg-white border border-slate-300 rounded-lg font-bold"
+                  >
+                    {ZONE_OPTIONS.Staircase.wings.map((w) => <option key={w} value={w}>{w}</option>)}
+                  </select>
+                )}
+                {selectedZone === "Rooftop" && (
+                  <select
+                    value={rooftopArea}
+                    onChange={(e) => setRooftopArea(e.target.value)}
+                    className="w-full text-xs p-2 bg-white border border-slate-300 rounded-lg font-bold"
+                  >
+                    {ZONE_OPTIONS.Rooftop.areas.map((ar) => <option key={ar} value={ar}>{ar}</option>)}
+                  </select>
+                )}
               </div>
-            ))}
-          </div>
-        </div>
+            </div>
 
-        {/* Action Buttons */}
-        <div className="flex items-center justify-between gap-2 pt-3 border-t">
-          {/* Delete Record Button */}
-          {onDelete ? (
-            <button
-              type="button"
-              onClick={onDelete}
-              disabled={isSaving}
-              className="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 disabled:opacity-50 text-rose-700 text-xs font-bold rounded-xl border border-rose-200 transition flex items-center gap-1.5"
-            >
-              <Trash2 className="w-3.5 h-3.5 text-rose-600" />
-              <span>Delete Record</span>
-            </button>
-          ) : (
-            <div />
-          )}
+            <div>
+              <label className="block text-[10px] font-bold text-slate-600 mb-1">CATATAN LANDMARK KHUSUS:</label>
+              <input
+                type="text"
+                value={landmarkNote}
+                onChange={(e) => setLandmarkNote(e.target.value)}
+                placeholder="cth: Tiang C-12 / Sebelah DB Box"
+                className="w-full text-xs p-2 bg-white border border-slate-300 rounded-lg font-semibold"
+              />
+            </div>
 
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={isSaving}
-              className="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-800 rounded-xl hover:bg-slate-100 transition"
+            <div className="text-[11px] bg-white p-2 rounded-lg border border-blue-300 text-blue-950 font-bold">
+              Lokasi Baru: {newLocationTag}
+            </div>
+          </div>
+
+          {/* STATUS & SEVERITY */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Status:</label>
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+                className="w-full text-xs p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold"
+              >
+                <option value="Pending Rectification">Pending Rectification</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Rectified / Closed">Rectified / Closed</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Severity:</label>
+              <select
+                value={severity}
+                onChange={(e) => setSeverity(e.target.value)}
+                className="w-full text-xs p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold"
+              >
+                <option value="Low">Low</option>
+                <option value="Medium">Medium</option>
+                <option value="High">High / Critical</option>
+              </select>
+            </div>
+          </div>
+
+          {/* ARAHAN */}
+          <div>
+            <label className="block text-[10px] font-black uppercase text-slate-600 mb-1">Arahan Pembaikan:</label>
+            <textarea
+              rows="2"
+              value={desc}
+              onChange={(e) => setDesc(e.target.value)}
+              className="w-full text-xs p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-medium"
+            />
+          </div>
+
+          {/* SEBAB EDIT */}
+          <div className="bg-amber-50 p-3 rounded-xl border border-amber-200">
+            <label className="block text-[10px] font-black uppercase text-amber-900 mb-1">Sebab Pengemaskinian:</label>
+            <select
+              value={editReason}
+              onChange={(e) => setEditReason(e.target.value)}
+              className="w-full text-xs p-2 bg-white border border-amber-300 rounded-lg font-bold"
             >
-              Cancel
+              <option value="Pembetulan Lokasi (Wrong Location Correction)">1. Pembetulan Lokasi (Salah tingkat / zon)</option>
+              <option value="Kemaskini Bukti Foto (Update Photos)">2. Kemaskini Bukti Foto</option>
+              <option value="Perubahan Status (Status Update)">3. Perubahan Status Pembaikan</option>
+            </select>
+          </div>
+
+          <div className="pt-2 flex justify-end gap-2">
+            <button type="button" onClick={onClose} className="py-2.5 px-4 bg-slate-100 rounded-xl text-xs font-bold">
+              Batal
             </button>
             <button
-              type="button"
-              onClick={handleSave}
+              type="submit"
               disabled={isSaving}
-              className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-bold rounded-xl shadow-md transition flex items-center gap-2"
+              className="py-2.5 px-5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-black shadow"
             >
-              {isSaving ? (
-                <>
-                  <UploadCloud className="w-4 h-4 animate-spin" />
-                  <span>{syncStatus || "Saving..."}</span>
-                </>
-              ) : (
-                <>
-                  <Check className="w-4 h-4" />
-                  <span>Save Changes</span>
-                </>
-              )}
+              {isSaving ? "Menyimpan..." : "Simpan Perubahan Lokasi"}
             </button>
           </div>
-        </div>
+        </form>
       </div>
     </div>
   );
