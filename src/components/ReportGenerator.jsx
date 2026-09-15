@@ -4,9 +4,8 @@ import { ZONE_OPTIONS, PROJECT_CONFIG } from "../constants.jsx";
 import {
   Printer,
   FileText,
-  Building,
-  Layers,
-  Image as ImageIcon
+  Image as ImageIcon,
+  BarChart2
 } from "lucide-react";
 
 export default function ReportGenerator({ defects = [], inspectorTag, onOpenGallery }) {
@@ -14,6 +13,7 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
   const [reportSubZone, setReportSubZone] = useState("All");
   const [reportStatus, setReportStatus] = useState("All");
   const [reportSeverity, setReportSeverity] = useState("All");
+  const [includeSummary, setIncludeSummary] = useState(true);
   const [includeAppendix, setIncludeAppendix] = useState(true);
 
   const availableSubZones = useMemo(() => {
@@ -59,9 +59,7 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
 
   return (
     <div className="space-y-6">
-      {/* ========================================================================= */}
-      {/* 1. INTERACTIVE FILTER & CONFIG CONSOLE (HIDDEN ON PRINT) */}
-      {/* ========================================================================= */}
+      {/* 1. FILTER & CONFIG CONSOLE */}
       <div className="bg-white p-4 rounded-xl border border-slate-300 shadow-sm space-y-3 print:hidden">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-3">
           <div>
@@ -70,7 +68,7 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
               DLP Audit Report Configuration
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">
-              Filter audit parameters and configure photographic appendix before exporting to PDF.
+              Filter audit parameters and configure report sections before exporting to PDF.
             </p>
           </div>
 
@@ -83,7 +81,7 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
           </button>
         </div>
 
-        {/* Filter Dropdowns */}
+        {/* Dropdowns */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
           <div>
             <label className="block text-[10px] font-bold uppercase text-slate-600 mb-1">
@@ -158,112 +156,96 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
           </div>
         </div>
 
-        {/* Options Row: Photo Appendix Toggle */}
-        <div className="pt-2 border-t border-slate-200 flex items-center justify-between">
-          <label className="flex items-center gap-2 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={includeAppendix}
-              onChange={(e) => setIncludeAppendix(e.target.checked)}
-              className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500"
-            />
-            <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-              <ImageIcon className="w-3.5 h-3.5 text-blue-600" />
-              Include High-Resolution Photographic Appendix (Full Evidence Plates)
-            </span>
-          </label>
+        {/* Toggles */}
+        <div className="pt-2.5 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-4">
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={includeSummary}
+                onChange={(e) => setIncludeSummary(e.target.checked)}
+                className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500"
+              />
+              <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                <BarChart2 className="w-3.5 h-3.5 text-blue-600" />
+                Include Executive Summary & Statistics
+              </span>
+            </label>
+
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={includeAppendix}
+                onChange={(e) => setIncludeAppendix(e.target.checked)}
+                className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500"
+              />
+              <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                <ImageIcon className="w-3.5 h-3.5 text-blue-600" />
+                Include Photographic Appendix Plates
+              </span>
+            </label>
+          </div>
+
           <span className="text-[11px] text-slate-500 italic">
-            {includeAppendix ? "Full audit package with photo plates" : "Compact schedule only"}
+            {!includeSummary && !includeAppendix ? "Defect schedule only" : "Customized audit package"}
           </span>
         </div>
       </div>
 
-      {/* ========================================================================= */}
-      {/* 2. FORMAL AUDIT DOCUMENT (ENGINEERING LEDGER STYLE) */}
-      {/* ========================================================================= */}
+      {/* 2. FORMAL AUDIT DOCUMENT */}
       <div className="bg-white p-6 sm:p-8 border border-slate-300 shadow-sm print:p-0 print:border-none print:shadow-none space-y-6">
         
-        {/* DOCUMENT HEADER / LETTERHEAD */}
-        <div className="border-b-2 border-slate-900 pb-3">
-          <div className="flex justify-between items-start">
-            <div>
-              <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 block">
-                Joint Management Body / Defect Liability Handover
-              </span>
-              <h1 className="text-xl font-black text-slate-950 uppercase tracking-tight">
-                {PROJECT_CONFIG?.buildingName || "Residensi Damai"}
-              </h1>
-              <p className="text-xs font-bold text-slate-700 mt-0.5">
-                DEFECT AUDIT & RECTIFICATION SCHEDULE (COMMON PROPERTY)
-              </p>
-            </div>
-
-            <div className="text-right text-[11px] space-y-0.5">
-              <p className="text-slate-600">
-                Doc Ref: <span className="font-mono font-bold text-slate-900">RD/DLP/{new Date().getFullYear()}/{summary.total}</span>
-              </p>
-              <p className="text-slate-600">
-                Date: <strong className="text-slate-900">{new Date().toLocaleDateString("en-MY", { year: "numeric", month: "short", day: "numeric" })}</strong>
-              </p>
-              <p className="text-slate-600">
-                Lead Inspector: <strong className="text-slate-900">{inspectorTag || "Building Supervisor"}</strong>
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-3 py-1.5 px-3 bg-slate-100 border border-slate-300 text-xs font-medium flex justify-between">
-            <span>
-              <strong>Scope:</strong> {reportMainZone === "All" ? "All Common Property Areas" : reportMainZone}
-              {reportSubZone !== "All" && ` • ${reportSubZone}`}
-            </span>
-            <span>
-              <strong>Filter:</strong> Status ({reportStatus}) | Severity ({reportSeverity})
-            </span>
-          </div>
+        {/* Simple Document Header */}
+        <div className="border-b-2 border-slate-900 pb-2">
+          <h1 className="text-xl font-black text-slate-950 uppercase tracking-tight">
+            {PROJECT_CONFIG?.buildingName || "Residensi Damai"}
+          </h1>
         </div>
 
-        {/* EXECUTIVE KPI SUMMARY TABLE */}
-        <div className="border border-slate-900">
-          <div className="bg-slate-900 text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1">
-            Executive Summary & Defect Statistics
+        {/* Executive Summary Table */}
+        {includeSummary && (
+          <div className="border border-slate-900">
+            <div className="bg-slate-900 text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1 print:[color-adjust:exact] print:bg-slate-900 print:text-white">
+              Executive Summary & Defect Statistics
+            </div>
+            <div className="grid grid-cols-5 text-center divide-x divide-slate-300 text-xs">
+              <div className="py-2 bg-slate-50 print:[color-adjust:exact]">
+                <span className="block text-[10px] text-slate-500 uppercase font-bold">Total In Scope</span>
+                <span className="text-base font-black text-slate-900">{summary.total}</span>
+              </div>
+              <div className="py-2 bg-amber-50/50 print:[color-adjust:exact]">
+                <span className="block text-[10px] text-amber-800 uppercase font-bold">Pending</span>
+                <span className="text-base font-black text-amber-900">{summary.pending}</span>
+              </div>
+              <div className="py-2 bg-blue-50/50 print:[color-adjust:exact]">
+                <span className="block text-[10px] text-blue-800 uppercase font-bold">In Progress</span>
+                <span className="text-base font-black text-blue-900">{summary.inProgress}</span>
+              </div>
+              <div className="py-2 bg-emerald-50/50 print:[color-adjust:exact]">
+                <span className="block text-[10px] text-emerald-800 uppercase font-bold">Rectified</span>
+                <span className="text-base font-black text-emerald-900">
+                  {summary.rectified} ({summary.completionRate}%)
+                </span>
+              </div>
+              <div className="py-2 bg-rose-50/50 print:[color-adjust:exact]">
+                <span className="block text-[10px] text-rose-800 uppercase font-bold">High Severity</span>
+                <span className="text-base font-black text-rose-900">{summary.high}</span>
+              </div>
+            </div>
           </div>
-          <div className="grid grid-cols-5 text-center divide-x divide-slate-300 text-xs">
-            <div className="py-2 bg-slate-50">
-              <span className="block text-[10px] text-slate-500 uppercase font-bold">Total In Scope</span>
-              <span className="text-base font-black text-slate-900">{summary.total}</span>
-            </div>
-            <div className="py-2 bg-amber-50/50">
-              <span className="block text-[10px] text-amber-800 uppercase font-bold">Pending</span>
-              <span className="text-base font-black text-amber-900">{summary.pending}</span>
-            </div>
-            <div className="py-2 bg-blue-50/50">
-              <span className="block text-[10px] text-blue-800 uppercase font-bold">In Progress</span>
-              <span className="text-base font-black text-blue-900">{summary.inProgress}</span>
-            </div>
-            <div className="py-2 bg-emerald-50/50">
-              <span className="block text-[10px] text-emerald-800 uppercase font-bold">Rectified</span>
-              <span className="text-base font-black text-emerald-900">
-                {summary.rectified} ({summary.completionRate}%)
-              </span>
-            </div>
-            <div className="py-2 bg-rose-50/50">
-              <span className="block text-[10px] text-rose-800 uppercase font-bold">High Severity</span>
-              <span className="text-base font-black text-rose-900">{summary.high}</span>
-            </div>
-          </div>
-        </div>
+        )}
 
-        {/* AUDIT MASTER TABLE */}
+        {/* Main Defects Table */}
         <div>
           <table className="w-full border-collapse border border-slate-800 text-left text-xs">
             <thead>
-              <tr className="bg-slate-900 text-white text-[10px] uppercase tracking-wider font-bold">
-                <th className="border border-slate-800 p-2 w-10 text-center">No.</th>
-                <th className="border border-slate-800 p-2 w-44">Location & Landmark</th>
-                <th className="border border-slate-800 p-2">Trade & Defect Description</th>
-                <th className="border border-slate-800 p-2 w-48 text-center">Evidence Photos</th>
-                <th className="border border-slate-800 p-2 w-28 text-center">Status / Priority</th>
-                <th className="border border-slate-800 p-2 w-36 text-center">Rectification Sign-Off</th>
+              <tr className="bg-slate-900 text-white text-[10px] uppercase tracking-wider font-bold print:[color-adjust:exact] print:bg-slate-900 print:text-white">
+                <th className="border border-slate-800 p-2 w-10 text-center text-white bg-slate-900 print:bg-slate-900 print:text-white">No.</th>
+                <th className="border border-slate-800 p-2 w-44 text-white bg-slate-900 print:bg-slate-900 print:text-white">Location & Landmark</th>
+                <th className="border border-slate-800 p-2 text-white bg-slate-900 print:bg-slate-900 print:text-white">Trade & Defect Description</th>
+                <th className="border border-slate-800 p-2 w-48 text-center text-white bg-slate-900 print:bg-slate-900 print:text-white">Evidence Photos</th>
+                <th className="border border-slate-800 p-2 w-28 text-center text-white bg-slate-900 print:bg-slate-900 print:text-white">Status / Priority</th>
+                <th className="border border-slate-800 p-2 w-36 text-center text-white bg-slate-900 print:bg-slate-900 print:text-white">Rectification Sign-Off</th>
               </tr>
             </thead>
             <tbody>
@@ -286,12 +268,10 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
                       className="break-inside-avoid border-b border-slate-800 align-top"
                       style={{ breakInside: "avoid" }}
                     >
-                      {/* 1. Item Index */}
-                      <td className="border border-slate-800 p-2 text-center font-mono font-bold bg-slate-50">
+                      <td className="border border-slate-800 p-2 text-center font-mono font-bold bg-slate-50 print:[color-adjust:exact]">
                         {index + 1}
                       </td>
 
-                      {/* 2. Location */}
                       <td className="border border-slate-800 p-2 text-[11px] leading-tight space-y-1">
                         <strong className="text-slate-950 block">{defect.location || "Common Property"}</strong>
                         {defect.subLayer && defect.subLayer !== defect.zoneId && (
@@ -304,10 +284,9 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
                         </span>
                       </td>
 
-                      {/* 3. Classification & Instructions */}
                       <td className="border border-slate-800 p-2 space-y-1">
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="font-bold text-blue-900 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200 text-[10px]">
+                          <span className="font-bold text-blue-900 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200 text-[10px] print:[color-adjust:exact]">
                             {defect.trade}
                           </span>
                           <span className="text-slate-600 text-[10px] font-semibold">
@@ -316,7 +295,7 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
                         </div>
                         <p className="font-black text-slate-950 text-xs">{defect.item}</p>
                         {defect.desc && (
-                          <p className="text-[11px] text-slate-700 italic bg-slate-50 p-1.5 rounded border border-slate-200 mt-1">
+                          <p className="text-[11px] text-slate-700 italic bg-slate-50 p-1.5 rounded border border-slate-200 mt-1 print:[color-adjust:exact]">
                             <strong>Work Required:</strong> {defect.desc}
                           </p>
                         )}
@@ -327,7 +306,6 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
                         )}
                       </td>
 
-                      {/* 4. Vertical Photo Stack (One-by-One, utilizing cell height) */}
                       <td className="border border-slate-800 p-1.5">
                         {photoList.length === 0 ? (
                           <div className="h-16 flex items-center justify-center text-[10px] text-slate-400 italic">
@@ -339,14 +317,14 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
                               <div
                                 key={pIdx}
                                 onClick={() => onOpenGallery && onOpenGallery(photoList, pIdx)}
-                                className="relative aspect-video w-full bg-slate-100 rounded overflow-hidden border border-slate-300 cursor-pointer shadow-xs"
+                                className="relative aspect-video w-full bg-slate-100 rounded overflow-hidden border border-slate-300 cursor-pointer shadow-xs print:[color-adjust:exact]"
                               >
                                 <img
                                   src={url}
                                   alt={`Evidence ${pIdx + 1}`}
                                   className="w-full h-full object-cover"
                                 />
-                                <span className="absolute bottom-1 right-1 text-[8px] font-bold bg-black/75 text-white px-1.5 py-0.5 rounded">
+                                <span className="absolute bottom-1 right-1 text-[8px] font-bold bg-black/75 text-white px-1.5 py-0.5 rounded print:[color-adjust:exact]">
                                   {index + 1}.{pIdx + 1}
                                 </span>
                               </div>
@@ -355,10 +333,9 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
                         )}
                       </td>
 
-                      {/* 5. Severity & Status */}
                       <td className="border border-slate-800 p-2 text-center space-y-1.5">
                         <span
-                          className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full inline-block border ${
+                          className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full inline-block border print:[color-adjust:exact] ${
                             defect.severity === "High"
                               ? "bg-rose-100 text-rose-800 border-rose-300"
                               : defect.severity === "Medium"
@@ -373,7 +350,6 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
                         </div>
                       </td>
 
-                      {/* 6. Sign-off */}
                       <td className="border border-slate-800 p-0 text-[10px]">
                         <div className="p-1.5 border-b border-slate-300 space-y-0.5">
                           <span className="text-[8px] font-bold uppercase text-slate-500 block">
@@ -384,7 +360,7 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
                             Sign / Date
                           </span>
                         </div>
-                        <div className="p-1.5 bg-slate-50 space-y-0.5">
+                        <div className="p-1.5 bg-slate-50 space-y-0.5 print:[color-adjust:exact]">
                           <span className="text-[8px] font-bold uppercase text-slate-500 block">
                             JMB Verification:
                           </span>
@@ -402,7 +378,7 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
           </table>
         </div>
 
-        {/* MASTER SIGN-OFF BLOCK */}
+        {/* Master Sign-Off Block */}
         <div
           className="pt-6 border-t-2 border-slate-900 break-inside-avoid space-y-3"
           style={{ breakInside: "avoid" }}
@@ -446,16 +422,11 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
           </div>
         </div>
 
-        {/* ========================================================================= */}
-        {/* 3. OPTIONAL HIGH-RESOLUTION PHOTOGRAPHIC APPENDIX (PRINT PAGE BREAK) */}
-        {/* ========================================================================= */}
+        {/* Photographic Evidence Appendix */}
         {includeAppendix && (
           <div className="pt-8 space-y-8" style={{ breakBefore: "page" }}>
             <div className="border-b-2 border-slate-900 pb-2 flex justify-between items-end">
               <div>
-                <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 block">
-                  Residensi Damai DLP Audit Document
-                </span>
                 <h2 className="text-lg font-black text-slate-950 uppercase">
                   Photographic Evidence Appendix
                 </h2>
@@ -477,17 +448,16 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
                 return (
                   <div
                     key={`appendix_${defect.id || dIdx}`}
-                    className="border border-slate-400 rounded-lg p-4 bg-slate-50/50 break-inside-avoid space-y-3"
+                    className="border border-slate-400 rounded-lg p-4 bg-slate-50/50 break-inside-avoid space-y-3 print:[color-adjust:exact]"
                     style={{ breakInside: "avoid" }}
                   >
-                    {/* Appendix Plate Header */}
                     <div className="flex justify-between items-start border-b border-slate-300 pb-2">
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="font-mono text-xs font-black bg-slate-900 text-white px-2 py-0.5 rounded">
+                          <span className="font-mono text-xs font-black bg-slate-900 text-white px-2 py-0.5 rounded print:[color-adjust:exact]">
                             Plate #{dIdx + 1}
                           </span>
-                          <span className="text-xs font-bold text-blue-900 bg-blue-100 px-2 py-0.5 rounded">
+                          <span className="text-xs font-bold text-blue-900 bg-blue-100 px-2 py-0.5 rounded print:[color-adjust:exact]">
                             {defect.trade}
                           </span>
                           <span className="text-xs font-black text-slate-900">
@@ -501,7 +471,7 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
 
                       <div className="text-right text-[11px]">
                         <span
-                          className={`font-bold px-2 py-0.5 rounded text-[10px] ${
+                          className={`font-bold px-2 py-0.5 rounded text-[10px] print:[color-adjust:exact] ${
                             defect.severity === "High"
                               ? "bg-rose-100 text-rose-800"
                               : "bg-amber-100 text-amber-800"
@@ -515,14 +485,12 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
                       </div>
                     </div>
 
-                    {/* Rectification Note */}
                     {defect.desc && (
                       <div className="text-xs text-slate-800 bg-white p-2 rounded border border-slate-200 italic">
                         <strong>Work Order / Rectification Instructions:</strong> {defect.desc}
                       </div>
                     )}
 
-                    {/* High-Resolution Evidence Photo Plates (2-Up Grid) */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                       {photoList.map((url, pIdx) => (
                         <div
@@ -530,13 +498,13 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
                           onClick={() => onOpenGallery && onOpenGallery(photoList, pIdx)}
                           className="space-y-1 cursor-pointer group"
                         >
-                          <div className="relative aspect-video w-full bg-black rounded-lg overflow-hidden border border-slate-300 shadow-sm">
+                          <div className="relative aspect-video w-full bg-black rounded-lg overflow-hidden border border-slate-300 shadow-sm print:[color-adjust:exact]">
                             <img
                               src={url}
                               alt={`Plate ${dIdx + 1} Photo ${pIdx + 1}`}
                               className="w-full h-full object-cover group-hover:scale-[1.02] transition"
                             />
-                            <span className="absolute bottom-1.5 right-1.5 text-[9px] font-black bg-black/80 text-white px-2 py-0.5 rounded">
+                            <span className="absolute bottom-1.5 right-1.5 text-[9px] font-black bg-black/80 text-white px-2 py-0.5 rounded print:[color-adjust:exact]">
                               Photo {dIdx + 1}.{pIdx + 1}
                             </span>
                           </div>
@@ -553,7 +521,6 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
             </div>
           </div>
         )}
-
       </div>
     </div>
   );
