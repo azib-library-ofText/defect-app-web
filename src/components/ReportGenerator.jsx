@@ -16,6 +16,7 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
   const [includeSummary, setIncludeSummary] = useState(true);
   const [includeAppendix, setIncludeAppendix] = useState(true);
 
+  // Pilihan Sub-Zon dinamik mengikut zon utama
   const availableSubZones = useMemo(() => {
     if (reportMainZone === "Carpark") return ZONE_OPTIONS.Carpark.floors;
     if (reportMainZone === "Residential") return ZONE_OPTIONS.Residential.floors;
@@ -26,6 +27,7 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
     return [];
   }, [reportMainZone]);
 
+  // Penapisan rekod defect
   const filteredReportDefects = useMemo(() => {
     return defects.filter((d) => {
       const matchZone = reportMainZone === "All" || d.zoneId === reportMainZone;
@@ -40,6 +42,7 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
     });
   }, [defects, reportMainZone, reportSubZone, reportStatus, reportSeverity]);
 
+  // Pengiraan statistik ringkasan eksekutif
   const summary = useMemo(() => {
     const total = filteredReportDefects.length;
     const rectified = filteredReportDefects.filter(
@@ -59,7 +62,9 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
 
   return (
     <div className="space-y-6">
-      {/* 1. FILTER & CONFIG CONSOLE */}
+      {/* ========================================================================= */}
+      {/* 1. KONSOL PENAPIS & KONFIGURASI (DISEMBUNYIKAN SEMASA CETAK)             */}
+      {/* ========================================================================= */}
       <div className="bg-white p-4 rounded-xl border border-slate-300 shadow-sm space-y-3 print:hidden">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-3">
           <div>
@@ -81,7 +86,7 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
           </button>
         </div>
 
-        {/* Dropdowns */}
+        {/* Dropdown Filters */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
           <div>
             <label className="block text-[10px] font-bold uppercase text-slate-600 mb-1">
@@ -192,42 +197,55 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
         </div>
       </div>
 
-      {/* 2. FORMAL AUDIT DOCUMENT */}
+      {/* ========================================================================= */}
+      {/* 2. DOKUMEN AUDIT RASMI (GAYA PRINT / PDF)                                 */}
+      {/* ========================================================================= */}
       <div className="bg-white p-6 sm:p-8 border border-slate-300 shadow-sm print:p-0 print:border-none print:shadow-none space-y-6">
         
-        {/* Simple Document Header */}
+        {/* HEADER RASMI BARU (KEMAS & TIDAK KOSONG) */}
         <div className="border-b-2 border-slate-900 pb-2">
           <h1 className="text-xl font-black text-slate-950 uppercase tracking-tight">
             {PROJECT_CONFIG?.buildingName || "Residensi Damai"}
           </h1>
+          <p className="text-xs font-bold text-slate-600 uppercase tracking-wide mt-0.5">
+            Defect Audit & Rectification Schedule (Common Property)
+          </p>
         </div>
 
-        {/* Executive Summary Table */}
+        {/* JADUAL RINGKASAN EKSEKUTIF (DIKAWAL TOGOL) */}
         {includeSummary && (
           <div className="border border-slate-900">
-            <div className="bg-slate-900 text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1 print:[color-adjust:exact] print:bg-slate-900 print:text-white">
+            <div
+              className="bg-slate-900 text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1"
+              style={{
+                backgroundColor: "#0f172a",
+                color: "#ffffff",
+                WebkitPrintColorAdjust: "exact",
+                printColorAdjust: "exact"
+              }}
+            >
               Executive Summary & Defect Statistics
             </div>
             <div className="grid grid-cols-5 text-center divide-x divide-slate-300 text-xs">
-              <div className="py-2 bg-slate-50 print:[color-adjust:exact]">
+              <div className="py-2 bg-slate-50" style={{ WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}>
                 <span className="block text-[10px] text-slate-500 uppercase font-bold">Total In Scope</span>
                 <span className="text-base font-black text-slate-900">{summary.total}</span>
               </div>
-              <div className="py-2 bg-amber-50/50 print:[color-adjust:exact]">
+              <div className="py-2 bg-amber-50/50" style={{ WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}>
                 <span className="block text-[10px] text-amber-800 uppercase font-bold">Pending</span>
                 <span className="text-base font-black text-amber-900">{summary.pending}</span>
               </div>
-              <div className="py-2 bg-blue-50/50 print:[color-adjust:exact]">
+              <div className="py-2 bg-blue-50/50" style={{ WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}>
                 <span className="block text-[10px] text-blue-800 uppercase font-bold">In Progress</span>
                 <span className="text-base font-black text-blue-900">{summary.inProgress}</span>
               </div>
-              <div className="py-2 bg-emerald-50/50 print:[color-adjust:exact]">
+              <div className="py-2 bg-emerald-50/50" style={{ WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}>
                 <span className="block text-[10px] text-emerald-800 uppercase font-bold">Rectified</span>
                 <span className="text-base font-black text-emerald-900">
                   {summary.rectified} ({summary.completionRate}%)
                 </span>
               </div>
-              <div className="py-2 bg-rose-50/50 print:[color-adjust:exact]">
+              <div className="py-2 bg-rose-50/50" style={{ WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}>
                 <span className="block text-[10px] text-rose-800 uppercase font-bold">High Severity</span>
                 <span className="text-base font-black text-rose-900">{summary.high}</span>
               </div>
@@ -235,17 +253,56 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
           </div>
         )}
 
-        {/* Main Defects Table */}
+        {/* JADUAL AUDIT UTAMA */}
         <div>
           <table className="w-full border-collapse border border-slate-800 text-left text-xs">
             <thead>
-              <tr className="bg-slate-900 text-white text-[10px] uppercase tracking-wider font-bold print:[color-adjust:exact] print:bg-slate-900 print:text-white">
-                <th className="border border-slate-800 p-2 w-10 text-center text-white bg-slate-900 print:bg-slate-900 print:text-white">No.</th>
-                <th className="border border-slate-800 p-2 w-44 text-white bg-slate-900 print:bg-slate-900 print:text-white">Location & Landmark</th>
-                <th className="border border-slate-800 p-2 text-white bg-slate-900 print:bg-slate-900 print:text-white">Trade & Defect Description</th>
-                <th className="border border-slate-800 p-2 w-48 text-center text-white bg-slate-900 print:bg-slate-900 print:text-white">Evidence Photos</th>
-                <th className="border border-slate-800 p-2 w-28 text-center text-white bg-slate-900 print:bg-slate-900 print:text-white">Status / Priority</th>
-                <th className="border border-slate-800 p-2 w-36 text-center text-white bg-slate-900 print:bg-slate-900 print:text-white">Rectification Sign-Off</th>
+              {/* DIKUATKUASAKAN DENGAN INLINE STYLE SUPAYA WARNA HITAM PEKAT TIDAK BOLEH DIBUANG OLEH BROWSER KETIKA CETAK */}
+              <tr
+                style={{
+                  backgroundColor: "#0f172a",
+                  color: "#ffffff",
+                  WebkitPrintColorAdjust: "exact",
+                  printColorAdjust: "exact"
+                }}
+                className="bg-slate-900 text-white text-[10px] uppercase tracking-wider font-bold"
+              >
+                <th
+                  className="border border-slate-800 p-2 w-10 text-center"
+                  style={{ backgroundColor: "#0f172a", color: "#ffffff", WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}
+                >
+                  No.
+                </th>
+                <th
+                  className="border border-slate-800 p-2 w-44"
+                  style={{ backgroundColor: "#0f172a", color: "#ffffff", WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}
+                >
+                  Location & Landmark
+                </th>
+                <th
+                  className="border border-slate-800 p-2"
+                  style={{ backgroundColor: "#0f172a", color: "#ffffff", WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}
+                >
+                  Trade & Defect Description
+                </th>
+                <th
+                  className="border border-slate-800 p-2 w-48 text-center"
+                  style={{ backgroundColor: "#0f172a", color: "#ffffff", WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}
+                >
+                  Evidence Photos
+                </th>
+                <th
+                  className="border border-slate-800 p-2 w-28 text-center"
+                  style={{ backgroundColor: "#0f172a", color: "#ffffff", WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}
+                >
+                  Status / Priority
+                </th>
+                <th
+                  className="border border-slate-800 p-2 w-36 text-center"
+                  style={{ backgroundColor: "#0f172a", color: "#ffffff", WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}
+                >
+                  Rectification Sign-Off
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -268,7 +325,7 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
                       className="break-inside-avoid border-b border-slate-800 align-top"
                       style={{ breakInside: "avoid" }}
                     >
-                      <td className="border border-slate-800 p-2 text-center font-mono font-bold bg-slate-50 print:[color-adjust:exact]">
+                      <td className="border border-slate-800 p-2 text-center font-mono font-bold bg-slate-50" style={{ WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}>
                         {index + 1}
                       </td>
 
@@ -286,7 +343,7 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
 
                       <td className="border border-slate-800 p-2 space-y-1">
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="font-bold text-blue-900 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200 text-[10px] print:[color-adjust:exact]">
+                          <span className="font-bold text-blue-900 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200 text-[10px]" style={{ WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}>
                             {defect.trade}
                           </span>
                           <span className="text-slate-600 text-[10px] font-semibold">
@@ -295,7 +352,7 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
                         </div>
                         <p className="font-black text-slate-950 text-xs">{defect.item}</p>
                         {defect.desc && (
-                          <p className="text-[11px] text-slate-700 italic bg-slate-50 p-1.5 rounded border border-slate-200 mt-1 print:[color-adjust:exact]">
+                          <p className="text-[11px] text-slate-700 italic bg-slate-50 p-1.5 rounded border border-slate-200 mt-1" style={{ WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}>
                             <strong>Work Required:</strong> {defect.desc}
                           </p>
                         )}
@@ -317,14 +374,15 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
                               <div
                                 key={pIdx}
                                 onClick={() => onOpenGallery && onOpenGallery(photoList, pIdx)}
-                                className="relative aspect-video w-full bg-slate-100 rounded overflow-hidden border border-slate-300 cursor-pointer shadow-xs print:[color-adjust:exact]"
+                                className="relative aspect-video w-full bg-slate-100 rounded overflow-hidden border border-slate-300 cursor-pointer shadow-xs"
+                                style={{ WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}
                               >
                                 <img
                                   src={url}
                                   alt={`Evidence ${pIdx + 1}`}
                                   className="w-full h-full object-cover"
                                 />
-                                <span className="absolute bottom-1 right-1 text-[8px] font-bold bg-black/75 text-white px-1.5 py-0.5 rounded print:[color-adjust:exact]">
+                                <span className="absolute bottom-1 right-1 text-[8px] font-bold bg-black/75 text-white px-1.5 py-0.5 rounded" style={{ WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}>
                                   {index + 1}.{pIdx + 1}
                                 </span>
                               </div>
@@ -335,13 +393,14 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
 
                       <td className="border border-slate-800 p-2 text-center space-y-1.5">
                         <span
-                          className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full inline-block border print:[color-adjust:exact] ${
+                          className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full inline-block border ${
                             defect.severity === "High"
                               ? "bg-rose-100 text-rose-800 border-rose-300"
                               : defect.severity === "Medium"
                               ? "bg-amber-100 text-amber-800 border-amber-300"
                               : "bg-emerald-100 text-emerald-800 border-emerald-300"
                           }`}
+                          style={{ WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}
                         >
                           {defect.severity} Priority
                         </span>
@@ -360,7 +419,7 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
                             Sign / Date
                           </span>
                         </div>
-                        <div className="p-1.5 bg-slate-50 space-y-0.5 print:[color-adjust:exact]">
+                        <div className="p-1.5 bg-slate-50 space-y-0.5" style={{ WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}>
                           <span className="text-[8px] font-bold uppercase text-slate-500 block">
                             JMB Verification:
                           </span>
@@ -378,7 +437,7 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
           </table>
         </div>
 
-        {/* Master Sign-Off Block */}
+        {/* MASTER SIGN-OFF BLOCK */}
         <div
           className="pt-6 border-t-2 border-slate-900 break-inside-avoid space-y-3"
           style={{ breakInside: "avoid" }}
@@ -422,7 +481,7 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
           </div>
         </div>
 
-        {/* Photographic Evidence Appendix */}
+        {/* APENDIKS BUKTI FOTO DEFINISI TINGGI */}
         {includeAppendix && (
           <div className="pt-8 space-y-8" style={{ breakBefore: "page" }}>
             <div className="border-b-2 border-slate-900 pb-2 flex justify-between items-end">
@@ -448,16 +507,19 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
                 return (
                   <div
                     key={`appendix_${defect.id || dIdx}`}
-                    className="border border-slate-400 rounded-lg p-4 bg-slate-50/50 break-inside-avoid space-y-3 print:[color-adjust:exact]"
-                    style={{ breakInside: "avoid" }}
+                    className="border border-slate-400 rounded-lg p-4 bg-slate-50/50 break-inside-avoid space-y-3"
+                    style={{ breakInside: "avoid", WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}
                   >
                     <div className="flex justify-between items-start border-b border-slate-300 pb-2">
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="font-mono text-xs font-black bg-slate-900 text-white px-2 py-0.5 rounded print:[color-adjust:exact]">
+                          <span
+                            className="font-mono text-xs font-black px-2 py-0.5 rounded"
+                            style={{ backgroundColor: "#0f172a", color: "#ffffff", WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}
+                          >
                             Plate #{dIdx + 1}
                           </span>
-                          <span className="text-xs font-bold text-blue-900 bg-blue-100 px-2 py-0.5 rounded print:[color-adjust:exact]">
+                          <span className="text-xs font-bold text-blue-900 bg-blue-100 px-2 py-0.5 rounded" style={{ WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}>
                             {defect.trade}
                           </span>
                           <span className="text-xs font-black text-slate-900">
@@ -471,11 +533,12 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
 
                       <div className="text-right text-[11px]">
                         <span
-                          className={`font-bold px-2 py-0.5 rounded text-[10px] print:[color-adjust:exact] ${
+                          className={`font-bold px-2 py-0.5 rounded text-[10px] ${
                             defect.severity === "High"
                               ? "bg-rose-100 text-rose-800"
                               : "bg-amber-100 text-amber-800"
                           }`}
+                          style={{ WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}
                         >
                           {defect.severity} Severity
                         </span>
@@ -498,13 +561,13 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
                           onClick={() => onOpenGallery && onOpenGallery(photoList, pIdx)}
                           className="space-y-1 cursor-pointer group"
                         >
-                          <div className="relative aspect-video w-full bg-black rounded-lg overflow-hidden border border-slate-300 shadow-sm print:[color-adjust:exact]">
+                          <div className="relative aspect-video w-full bg-black rounded-lg overflow-hidden border border-slate-300 shadow-sm" style={{ WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}>
                             <img
                               src={url}
                               alt={`Plate ${dIdx + 1} Photo ${pIdx + 1}`}
                               className="w-full h-full object-cover group-hover:scale-[1.02] transition"
                             />
-                            <span className="absolute bottom-1.5 right-1.5 text-[9px] font-black bg-black/80 text-white px-2 py-0.5 rounded print:[color-adjust:exact]">
+                            <span className="absolute bottom-1.5 right-1.5 text-[9px] font-black bg-black/80 text-white px-2 py-0.5 rounded" style={{ WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}>
                               Photo {dIdx + 1}.{pIdx + 1}
                             </span>
                           </div>
@@ -521,6 +584,7 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
             </div>
           </div>
         )}
+
       </div>
     </div>
   );
