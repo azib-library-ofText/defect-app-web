@@ -5,18 +5,176 @@ import {
   Printer,
   FileText,
   Image as ImageIcon,
-  BarChart2
+  BarChart2,
+  ArrowDownUp,
+  Languages
 } from "lucide-react";
+
+// Master translation dictionary for report generation
+const TRANSLATIONS = {
+  bi: {
+    docSubtitle: "Jadual Audit & Pembaikan Kecacatan (Harta Bersama) / Defect Audit & Rectification Schedule (Common Property)",
+    summaryTitle: "Ringkasan Eksekutif & Statistik Kecacatan / Executive Summary & Defect Statistics",
+    totalInScope: "Jumlah Dalam Skop / Total in Scope",
+    pending: "Menunggu / Pending",
+    inProgress: "Dalam Tindakan / In Progress",
+    rectified: "Selesai / Rectified",
+    highSeverity: "Kritikal / High Severity",
+    colNo: "No.",
+    colLocation: "Lokasi & Tempat Rujukan / Location & Landmark",
+    colTradeDesc: "Bidang & Keterangan / Trade & Description",
+    colPhotos: "Foto Bukti / Evidence Photos",
+    colStatusPriority: "Status & Keutamaan / Status & Priority",
+    colSignOff: "Pengesahan Pembaikan / Rectification Sign-Off",
+    noRecords: "Tiada rekod kecacatan sepadan dengan skop yang dipilih / No defect records match the selected scope.",
+    deck: "Aras / Deck",
+    logDate: "Tarikh Log / Logged",
+    workRequired: "Tindakan Diperlukan / Work Required",
+    seeAppendix: "Lihat Plat Lampiran / See Appendix Plate",
+    photosCount: "Foto Definisi Tinggi / High-Res Photos",
+    noPhoto: "Tiada Foto / No Photo",
+    contractorAction: "Tindakan Kontraktor / Contractor Action",
+    signDate: "Tandatangan & Tarikh / Sign & Date",
+    jmbVerification: "Pengesahan JMB / JMB Verification",
+    pass: "Lulus / Pass",
+    rework: "Ubah Semula / Rework",
+    ackTitle: "Pengesahan Rasmi & Tandatangan Penyerahan Tapak / Official Acknowledgment & Site Handover Signatures",
+    inspectorSign: "Pemeriksa Bersama Tapak / Joint Inspection Inspector",
+    contractorSign: "Wakil Tapak Kontraktor Utama / Main Contractor Site Representative",
+    developerSign: "Pihak Pemaju / Pengurusan / Developer / Management Authority",
+    stampAcceptance: "Cop & Penerimaan / Stamp & Acceptance",
+    signature: "Tandatangan / Signature",
+    date: "Tarikh / Date",
+    appendixTitle: "Lampiran Bukti Bergambar / Photographic Evidence Appendix",
+    appendixSubtitle: "Plat Rujukan Indeks / Index Reference Plates",
+    plate: "Plat / Plate",
+    evidenceRef: "Ruj Bukti / Evidence Ref",
+    clickZoom: "Klik untuk besarkan / Click to Zoom",
+    prioritySuffix: "Keutamaan / Priority"
+  },
+  ms: {
+    docSubtitle: "Jadual Audit & Pembaikan Kecacatan (Harta Bersama)",
+    summaryTitle: "Ringkasan Eksekutif & Statistik Kecacatan",
+    totalInScope: "Jumlah Dalam Skop",
+    pending: "Menunggu",
+    inProgress: "Dalam Tindakan",
+    rectified: "Selesai",
+    highSeverity: "Kritikal / Tinggi",
+    colNo: "No.",
+    colLocation: "Lokasi & Tempat Rujukan",
+    colTradeDesc: "Bidang & Keterangan Kecacatan",
+    colPhotos: "Foto Bukti",
+    colStatusPriority: "Status & Keutamaan",
+    colSignOff: "Pengesahan Pembaikan",
+    noRecords: "Tiada rekod kecacatan sepadan dengan skop yang dipilih.",
+    deck: "Aras",
+    logDate: "Tarikh Log",
+    workRequired: "Tindakan Diperlukan",
+    seeAppendix: "Lihat Plat Lampiran",
+    photosCount: "Foto Definisi Tinggi",
+    noPhoto: "Tiada Foto",
+    contractorAction: "Tindakan Kontraktor",
+    signDate: "Tandatangan / Tarikh",
+    jmbVerification: "Pengesahan JMB",
+    pass: "Lulus",
+    rework: "Ubah Semula",
+    ackTitle: "Pengesahan Rasmi & Tandatangan Penyerahan Tapak",
+    inspectorSign: "Pemeriksa Bersama Tapak",
+    contractorSign: "Wakil Tapak Kontraktor Utama",
+    developerSign: "Pihak Pemaju / Pengurusan",
+    stampAcceptance: "Cop & Penerimaan",
+    signature: "Tandatangan",
+    date: "Tarikh",
+    appendixTitle: "Lampiran Bukti Bergambar",
+    appendixSubtitle: "Plat Rujukan Indeks",
+    plate: "Plat",
+    evidenceRef: "Ruj Bukti",
+    clickZoom: "Klik untuk besarkan",
+    prioritySuffix: "Keutamaan"
+  },
+  en: {
+    docSubtitle: "Defect Audit & Rectification Schedule (Common Property)",
+    summaryTitle: "Executive Summary & Defect Statistics",
+    totalInScope: "Total In Scope",
+    pending: "Pending",
+    inProgress: "In Progress",
+    rectified: "Rectified",
+    highSeverity: "High Severity",
+    colNo: "No.",
+    colLocation: "Location & Landmark",
+    colTradeDesc: "Trade & Defect Description",
+    colPhotos: "Evidence Photos",
+    colStatusPriority: "Status / Priority",
+    colSignOff: "Rectification Sign-Off",
+    noRecords: "No defect records match the selected scope.",
+    deck: "Deck",
+    logDate: "Log Date",
+    workRequired: "Work Required",
+    seeAppendix: "See Appendix Plate",
+    photosCount: "High-Res Photos",
+    noPhoto: "No Photo",
+    contractorAction: "Contractor Action",
+    signDate: "Sign / Date",
+    jmbVerification: "JMB Verification",
+    pass: "Pass",
+    rework: "Rework",
+    ackTitle: "Official Acknowledgment & Site Handover Signatures",
+    inspectorSign: "Joint Inspection Inspector",
+    contractorSign: "Main Contractor Site Representative",
+    developerSign: "Developer / Management Authority",
+    stampAcceptance: "Stamp & Acceptance",
+    signature: "Signature",
+    date: "Date",
+    appendixTitle: "Photographic Evidence Appendix",
+    appendixSubtitle: "Index Reference Plates",
+    plate: "Plate",
+    evidenceRef: "Evidence Ref",
+    clickZoom: "Click to Zoom",
+    prioritySuffix: "Priority"
+  }
+};
+
+// Spatial Zone hierarchy order
+const ZONE_HIERARCHY_RANK = {
+  Ground: 1,
+  Carpark: 2,
+  Facility: 3,
+  Residential: 4,
+  Rooftop: 5,
+  Staircase: 6
+};
+
+// Utility to parse text strings with catalog format: "English (Melayu)"
+function formatBilingualText(text = "", lang = "bi") {
+  if (!text) return "";
+  const match = text.match(/^([^(]+)\s*\(([^)]+)\)$/);
+  if (!match) return text;
+
+  const english = match[1].trim();
+  const malay = match[2].trim();
+
+  if (lang === "en") return english;
+  if (lang === "ms") return malay;
+  return (
+    <span>
+      {malay} <span className="text-slate-500 font-normal italic">({english})</span>
+    </span>
+  );
+}
 
 export default function ReportGenerator({ defects = [], inspectorTag, onOpenGallery }) {
   const [reportMainZone, setReportMainZone] = useState("All");
   const [reportSubZone, setReportSubZone] = useState("All");
   const [reportStatus, setReportStatus] = useState("All");
   const [reportSeverity, setReportSeverity] = useState("All");
+  const [sortBy, setSortBy] = useState("oldestFirst"); // "oldestFirst", "hierarchy", "newestFirst"
+  const [reportLang, setReportLang] = useState("bi"); // "bi", "ms", "en"
   const [includeSummary, setIncludeSummary] = useState(true);
   const [includeAppendix, setIncludeAppendix] = useState(true);
 
-  // Pilihan Sub-Zon dinamik mengikut zon utama
+  const t = TRANSLATIONS[reportLang] || TRANSLATIONS.bi;
+
+  // Dynamic Sub-Zone options
   const availableSubZones = useMemo(() => {
     if (reportMainZone === "Carpark") return ZONE_OPTIONS.Carpark.floors;
     if (reportMainZone === "Residential") return ZONE_OPTIONS.Residential.floors;
@@ -27,8 +185,8 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
     return [];
   }, [reportMainZone]);
 
-  // Penapisan rekod defect
-  const filteredReportDefects = useMemo(() => {
+  // Filter defects by parameters
+  const filteredDefects = useMemo(() => {
     return defects.filter((d) => {
       const matchZone = reportMainZone === "All" || d.zoneId === reportMainZone;
       const matchSubZone =
@@ -42,19 +200,54 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
     });
   }, [defects, reportMainZone, reportSubZone, reportStatus, reportSeverity]);
 
-  // Pengiraan statistik ringkasan eksekutif
+  // Dual Sort Ordering Pipeline
+  const sortedReportDefects = useMemo(() => {
+    const list = [...filteredDefects];
+
+    if (sortBy === "oldestFirst") {
+      // Ascending chronological: early entries on top, new entries append to the bottom
+      return list.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+    }
+
+    if (sortBy === "newestFirst") {
+      // Descending chronological
+      return list.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    }
+
+    if (sortBy === "hierarchy") {
+      // Spatial level flow: Ground -> Carpark -> Facility -> Residential -> Rooftop -> Staircase
+      return list.sort((a, b) => {
+        const rankA = ZONE_HIERARCHY_RANK[a.zoneId] || 99;
+        const rankB = ZONE_HIERARCHY_RANK[b.zoneId] || 99;
+        if (rankA !== rankB) return rankA - rankB;
+
+        // Sublayer alphanumeric sorting (e.g., Level 1A before Level 2B)
+        const subA = a.subLayer || "";
+        const subB = b.subLayer || "";
+        const subCompare = subA.localeCompare(subB, undefined, { numeric: true });
+        if (subCompare !== 0) return subCompare;
+
+        // Earliest first within same floor
+        return (a.createdAt || 0) - (b.createdAt || 0);
+      });
+    }
+
+    return list;
+  }, [filteredDefects, sortBy]);
+
+  // Executive summary statistics
   const summary = useMemo(() => {
-    const total = filteredReportDefects.length;
-    const rectified = filteredReportDefects.filter(
+    const total = sortedReportDefects.length;
+    const rectified = sortedReportDefects.filter(
       (d) => d.status === "Rectified" || d.status === "Rectified / Closed"
     ).length;
-    const inProgress = filteredReportDefects.filter((d) => d.status === "In Progress").length;
-    const pending = filteredReportDefects.filter((d) => d.status === "Pending Rectification").length;
-    const high = filteredReportDefects.filter((d) => d.severity === "High").length;
+    const inProgress = sortedReportDefects.filter((d) => d.status === "In Progress").length;
+    const pending = sortedReportDefects.filter((d) => d.status === "Pending Rectification").length;
+    const high = sortedReportDefects.filter((d) => d.severity === "High").length;
     const completionRate = total > 0 ? Math.round((rectified / total) * 100) : 0;
 
     return { total, rectified, inProgress, pending, high, completionRate };
-  }, [filteredReportDefects]);
+  }, [sortedReportDefects]);
 
   const handlePrint = () => {
     window.print();
@@ -63,7 +256,7 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
   return (
     <div className="space-y-6">
       {/* ========================================================================= */}
-      {/* 1. KONSOL PENAPIS & KONFIGURASI (DISEMBUNYIKAN SEMASA CETAK)             */}
+      {/* 1. KONSOL PENAPIS & KONFIGURASI LAPORAN (DISEMBUNYIKAN SEMASA CETAK)      */}
       {/* ========================================================================= */}
       <div className="bg-white p-4 rounded-xl border border-slate-300 shadow-sm space-y-3 print:hidden">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-3">
@@ -73,7 +266,7 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
               DLP Audit Report Configuration
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">
-              Filter audit parameters and configure report sections before exporting to PDF.
+              Filter audit parameters, choose language, and configure report ordering before exporting to PDF.
             </p>
           </div>
 
@@ -86,7 +279,7 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
           </button>
         </div>
 
-        {/* Dropdown Filters */}
+        {/* Row 1: Dropdown Filters */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
           <div>
             <label className="block text-[10px] font-bold uppercase text-slate-600 mb-1">
@@ -161,7 +354,48 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
           </div>
         </div>
 
-        {/* Toggles */}
+        {/* Row 2: Sort Ordering & Bilingual Dropdowns */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+          <div>
+            <label className="block text-[10px] font-bold uppercase text-slate-600 mb-1 flex items-center gap-1">
+              <ArrowDownUp className="w-3.5 h-3.5 text-blue-600" />
+              Susunan Laporan / Order Sequence:
+            </label>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="w-full text-xs p-2 bg-blue-50/70 border border-blue-300 rounded-lg font-bold text-blue-950"
+            >
+              <option value="oldestFirst">
+                1. Tarikh Terawal ➔ Terkini (Rekod Baru Ditambah di Bawah Sekali)
+              </option>
+              <option value="hierarchy">
+                2. Hierarki Aras (Ground ➔ Carpark ➔ Tingkat Atas ➔ Rooftop)
+              </option>
+              <option value="newestFirst">
+                3. Tarikh Terkini ➔ Terawal (Rekod Baru di Muka Surat Pertama)
+              </option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-[10px] font-bold uppercase text-slate-600 mb-1 flex items-center gap-1">
+              <Languages className="w-3.5 h-3.5 text-blue-600" />
+              Bahasa Dokumen / Report Language:
+            </label>
+            <select
+              value={reportLang}
+              onChange={(e) => setReportLang(e.target.value)}
+              className="w-full text-xs p-2 bg-blue-50/70 border border-blue-300 rounded-lg font-bold text-blue-950"
+            >
+              <option value="bi">Dwibahasa (Bahasa Melayu / English)</option>
+              <option value="ms">Bahasa Melayu Sahaja</option>
+              <option value="en">English Only</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Row 3: Section Checkboxes */}
         <div className="pt-2.5 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-4">
             <label className="flex items-center gap-2 cursor-pointer select-none">
@@ -202,17 +436,17 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
       {/* ========================================================================= */}
       <div className="bg-white p-6 sm:p-8 border border-slate-300 shadow-sm print:p-0 print:border-none print:shadow-none space-y-6">
         
-        {/* HEADER RASMI BARU (KEMAS & TIDAK KOSONG) */}
+        {/* HEADER RASMI BERSIH: NAMA PROJEK & SUBTAJUK DWIBAHASA */}
         <div className="border-b-2 border-slate-900 pb-2">
           <h1 className="text-xl font-black text-slate-950 uppercase tracking-tight">
             {PROJECT_CONFIG?.buildingName || "Residensi Damai"}
           </h1>
           <p className="text-xs font-bold text-slate-600 uppercase tracking-wide mt-0.5">
-            Defect Audit & Rectification Schedule (Common Property)
+            {t.docSubtitle}
           </p>
         </div>
 
-        {/* JADUAL RINGKASAN EKSEKUTIF (DIKAWAL TOGOL) */}
+        {/* JADUAL RINGKASAN EKSEKUTIF (DIKAWAL OLEH TOGOL) */}
         {includeSummary && (
           <div className="border border-slate-900">
             <div
@@ -224,29 +458,29 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
                 printColorAdjust: "exact"
               }}
             >
-              Executive Summary & Defect Statistics
+              {t.summaryTitle}
             </div>
             <div className="grid grid-cols-5 text-center divide-x divide-slate-300 text-xs">
               <div className="py-2 bg-slate-50" style={{ WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}>
-                <span className="block text-[10px] text-slate-500 uppercase font-bold">Total In Scope</span>
+                <span className="block text-[10px] text-slate-500 uppercase font-bold">{t.totalInScope}</span>
                 <span className="text-base font-black text-slate-900">{summary.total}</span>
               </div>
               <div className="py-2 bg-amber-50/50" style={{ WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}>
-                <span className="block text-[10px] text-amber-800 uppercase font-bold">Pending</span>
+                <span className="block text-[10px] text-amber-800 uppercase font-bold">{t.pending}</span>
                 <span className="text-base font-black text-amber-900">{summary.pending}</span>
               </div>
               <div className="py-2 bg-blue-50/50" style={{ WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}>
-                <span className="block text-[10px] text-blue-800 uppercase font-bold">In Progress</span>
+                <span className="block text-[10px] text-blue-800 uppercase font-bold">{t.inProgress}</span>
                 <span className="text-base font-black text-blue-900">{summary.inProgress}</span>
               </div>
               <div className="py-2 bg-emerald-50/50" style={{ WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}>
-                <span className="block text-[10px] text-emerald-800 uppercase font-bold">Rectified</span>
+                <span className="block text-[10px] text-emerald-800 uppercase font-bold">{t.rectified}</span>
                 <span className="text-base font-black text-emerald-900">
                   {summary.rectified} ({summary.completionRate}%)
                 </span>
               </div>
               <div className="py-2 bg-rose-50/50" style={{ WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}>
-                <span className="block text-[10px] text-rose-800 uppercase font-bold">High Severity</span>
+                <span className="block text-[10px] text-rose-800 uppercase font-bold">{t.highSeverity}</span>
                 <span className="text-base font-black text-rose-900">{summary.high}</span>
               </div>
             </div>
@@ -257,7 +491,6 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
         <div>
           <table className="w-full border-collapse border border-slate-800 text-left text-xs">
             <thead>
-              {/* DIKUATKUASAKAN DENGAN INLINE STYLE SUPAYA WARNA HITAM PEKAT TIDAK BOLEH DIBUANG OLEH BROWSER KETIKA CETAK */}
               <tr
                 style={{
                   backgroundColor: "#0f172a",
@@ -271,49 +504,49 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
                   className="border border-slate-800 p-2 w-10 text-center"
                   style={{ backgroundColor: "#0f172a", color: "#ffffff", WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}
                 >
-                  No.
+                  {t.colNo}
                 </th>
                 <th
                   className="border border-slate-800 p-2 w-44"
                   style={{ backgroundColor: "#0f172a", color: "#ffffff", WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}
                 >
-                  Location & Landmark
+                  {t.colLocation}
                 </th>
                 <th
                   className="border border-slate-800 p-2"
                   style={{ backgroundColor: "#0f172a", color: "#ffffff", WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}
                 >
-                  Trade & Defect Description
+                  {t.colTradeDesc}
                 </th>
                 <th
                   className="border border-slate-800 p-2 w-48 text-center"
                   style={{ backgroundColor: "#0f172a", color: "#ffffff", WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}
                 >
-                  Evidence Photos
+                  {t.colPhotos}
                 </th>
                 <th
                   className="border border-slate-800 p-2 w-28 text-center"
                   style={{ backgroundColor: "#0f172a", color: "#ffffff", WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}
                 >
-                  Status / Priority
+                  {t.colStatusPriority}
                 </th>
                 <th
                   className="border border-slate-800 p-2 w-36 text-center"
                   style={{ backgroundColor: "#0f172a", color: "#ffffff", WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}
                 >
-                  Rectification Sign-Off
+                  {t.colSignOff}
                 </th>
               </tr>
             </thead>
             <tbody>
-              {filteredReportDefects.length === 0 ? (
+              {sortedReportDefects.length === 0 ? (
                 <tr>
                   <td colSpan="6" className="border border-slate-300 p-8 text-center text-slate-400 font-semibold italic">
-                    No defect records match the selected scope.
+                    {t.noRecords}
                   </td>
                 </tr>
               ) : (
-                filteredReportDefects.map((defect, index) => {
+                sortedReportDefects.map((defect, index) => {
                   const photoList =
                     defect.photoUrls && defect.photoUrls.length > 0
                       ? defect.photoUrls
@@ -333,32 +566,34 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
                         <strong className="text-slate-950 block">{defect.location || "Common Property"}</strong>
                         {defect.subLayer && defect.subLayer !== defect.zoneId && (
                           <span className="text-[10px] text-slate-500 block font-semibold">
-                            Deck: {defect.subLayer}
+                            {t.deck}: {defect.subLayer}
                           </span>
                         )}
                         <span className="text-[9px] text-slate-400 font-mono block">
-                          Log: {defect.date || "N/A"}
+                          {t.logDate}: {defect.date || "N/A"}
                         </span>
                       </td>
 
                       <td className="border border-slate-800 p-2 space-y-1">
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <span className="font-bold text-blue-900 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200 text-[10px]" style={{ WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}>
-                            {defect.trade}
+                            {formatBilingualText(defect.trade, reportLang)}
                           </span>
                           <span className="text-slate-600 text-[10px] font-semibold">
-                            • {defect.element}
+                            • {formatBilingualText(defect.element, reportLang)}
                           </span>
                         </div>
-                        <p className="font-black text-slate-950 text-xs">{defect.item}</p>
+                        <p className="font-black text-slate-950 text-xs">
+                          {formatBilingualText(defect.item, reportLang)}
+                        </p>
                         {defect.desc && (
                           <p className="text-[11px] text-slate-700 italic bg-slate-50 p-1.5 rounded border border-slate-200 mt-1" style={{ WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}>
-                            <strong>Work Required:</strong> {defect.desc}
+                            <strong>{t.workRequired}:</strong> {defect.desc}
                           </p>
                         )}
                         {includeAppendix && photoList.length > 0 && (
                           <span className="text-[9px] font-bold text-blue-700 block pt-0.5">
-                            ↳ See Appendix Plate #{index + 1} ({photoList.length} High-Res Photos)
+                            ↳ {t.seeAppendix} #{index + 1} ({photoList.length} {t.photosCount})
                           </span>
                         )}
                       </td>
@@ -366,7 +601,7 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
                       <td className="border border-slate-800 p-1.5">
                         {photoList.length === 0 ? (
                           <div className="h-16 flex items-center justify-center text-[10px] text-slate-400 italic">
-                            No Photo
+                            {t.noPhoto}
                           </div>
                         ) : (
                           <div className="flex flex-col gap-1.5">
@@ -402,7 +637,7 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
                           }`}
                           style={{ WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}
                         >
-                          {defect.severity} Priority
+                          {defect.severity} {t.prioritySuffix}
                         </span>
                         <div className="text-[10px] font-bold text-slate-800 mt-1">
                           {defect.status}
@@ -412,20 +647,20 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
                       <td className="border border-slate-800 p-0 text-[10px]">
                         <div className="p-1.5 border-b border-slate-300 space-y-0.5">
                           <span className="text-[8px] font-bold uppercase text-slate-500 block">
-                            Contractor Action:
+                            {t.contractorAction}:
                           </span>
                           <div className="h-5"></div>
                           <span className="text-[8px] text-slate-400 block border-t border-dotted border-slate-400 pt-0.5">
-                            Sign / Date
+                            {t.signDate}
                           </span>
                         </div>
                         <div className="p-1.5 bg-slate-50 space-y-0.5" style={{ WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}>
                           <span className="text-[8px] font-bold uppercase text-slate-500 block">
-                            JMB Verification:
+                            {t.jmbVerification}:
                           </span>
                           <div className="h-5"></div>
                           <span className="text-[8px] text-slate-400 block border-t border-dotted border-slate-400 pt-0.5">
-                            Pass [ ] Rework [ ]
+                            {t.pass} [ ] {t.rework} [ ]
                           </span>
                         </div>
                       </td>
@@ -443,39 +678,39 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
           style={{ breakInside: "avoid" }}
         >
           <div className="text-[11px] font-bold text-slate-900 uppercase">
-            Official Acknowledgment & Site Handover Signatures
+            {t.ackTitle}
           </div>
           <div className="grid grid-cols-3 gap-4">
             <div className="border border-slate-800 p-3 h-28 flex flex-col justify-between">
               <div>
-                <span className="text-[9px] font-black uppercase text-slate-500 block">Joint Inspection Inspector</span>
+                <span className="text-[9px] font-black uppercase text-slate-500 block">{t.inspectorSign}</span>
                 <p className="text-xs font-bold text-slate-900 mt-0.5">{inspectorTag || "Staff Inspector"}</p>
               </div>
               <div className="border-t border-slate-400 pt-1 text-[9px] text-slate-400 flex justify-between">
-                <span>Signature</span>
-                <span>Date: ____________</span>
+                <span>{t.signature}</span>
+                <span>{t.date}: ____________</span>
               </div>
             </div>
 
             <div className="border border-slate-800 p-3 h-28 flex flex-col justify-between">
               <div>
-                <span className="text-[9px] font-black uppercase text-slate-500 block">Main Contractor Site Representative</span>
+                <span className="text-[9px] font-black uppercase text-slate-500 block">{t.contractorSign}</span>
                 <p className="text-xs font-bold text-slate-900 mt-0.5">Name: _______________________</p>
               </div>
               <div className="border-t border-slate-400 pt-1 text-[9px] text-slate-400 flex justify-between">
-                <span>Signature</span>
-                <span>Date: ____________</span>
+                <span>{t.signature}</span>
+                <span>{t.date}: ____________</span>
               </div>
             </div>
 
             <div className="border border-slate-800 p-3 h-28 flex flex-col justify-between">
               <div>
-                <span className="text-[9px] font-black uppercase text-slate-500 block">Developer / Management Authority</span>
-                <p className="text-xs font-bold text-slate-900 mt-0.5">Stamp & Acceptance</p>
+                <span className="text-[9px] font-black uppercase text-slate-500 block">{t.developerSign}</span>
+                <p className="text-xs font-bold text-slate-900 mt-0.5">{t.stampAcceptance}</p>
               </div>
               <div className="border-t border-slate-400 pt-1 text-[9px] text-slate-400 flex justify-between">
-                <span>Signature</span>
-                <span>Date: ____________</span>
+                <span>{t.signature}</span>
+                <span>{t.date}: ____________</span>
               </div>
             </div>
           </div>
@@ -487,16 +722,16 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
             <div className="border-b-2 border-slate-900 pb-2 flex justify-between items-end">
               <div>
                 <h2 className="text-lg font-black text-slate-950 uppercase">
-                  Photographic Evidence Appendix
+                  {t.appendixTitle}
                 </h2>
               </div>
               <span className="text-xs font-bold text-slate-600">
-                Index Reference Plates
+                {t.appendixSubtitle}
               </span>
             </div>
 
             <div className="space-y-8">
-              {filteredReportDefects.map((defect, dIdx) => {
+              {sortedReportDefects.map((defect, dIdx) => {
                 const photoList =
                   defect.photoUrls && defect.photoUrls.length > 0
                     ? defect.photoUrls
@@ -512,18 +747,18 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
                   >
                     <div className="flex justify-between items-start border-b border-slate-300 pb-2">
                       <div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span
                             className="font-mono text-xs font-black px-2 py-0.5 rounded"
                             style={{ backgroundColor: "#0f172a", color: "#ffffff", WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}
                           >
-                            Plate #{dIdx + 1}
+                            {t.plate} #{dIdx + 1}
                           </span>
                           <span className="text-xs font-bold text-blue-900 bg-blue-100 px-2 py-0.5 rounded" style={{ WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}>
-                            {defect.trade}
+                            {formatBilingualText(defect.trade, reportLang)}
                           </span>
                           <span className="text-xs font-black text-slate-900">
-                            {defect.item}
+                            {formatBilingualText(defect.item, reportLang)}
                           </span>
                         </div>
                         <p className="text-[11px] text-slate-600 mt-1 font-medium">
@@ -540,17 +775,17 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
                           }`}
                           style={{ WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}
                         >
-                          {defect.severity} Severity
+                          {defect.severity} {t.prioritySuffix}
                         </span>
                         <p className="text-[10px] text-slate-500 mt-0.5 font-mono">
-                          Logged: {defect.date || "N/A"}
+                          {t.logDate}: {defect.date || "N/A"}
                         </p>
                       </div>
                     </div>
 
                     {defect.desc && (
                       <div className="text-xs text-slate-800 bg-white p-2 rounded border border-slate-200 italic">
-                        <strong>Work Order / Rectification Instructions:</strong> {defect.desc}
+                        <strong>{t.workRequired}:</strong> {defect.desc}
                       </div>
                     )}
 
@@ -572,8 +807,8 @@ export default function ReportGenerator({ defects = [], inspectorTag, onOpenGall
                             </span>
                           </div>
                           <div className="flex justify-between items-center text-[10px] text-slate-500 px-1 font-mono">
-                            <span>Evidence Ref: RD-IMG-{dIdx + 1}-{pIdx + 1}</span>
-                            <span>Click to Zoom</span>
+                            <span>{t.evidenceRef}: RD-IMG-{dIdx + 1}-{pIdx + 1}</span>
+                            <span>{t.clickZoom}</span>
                           </div>
                         </div>
                       ))}
