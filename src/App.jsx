@@ -46,7 +46,8 @@ import {
   ListOrdered,
   Grid,
   ChevronRight,
-  FolderSearch
+  FolderSearch,
+  Image as ImageIcon
 } from "lucide-react";
 
 export default function App() {
@@ -98,7 +99,7 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState("All");
   const [groupByMode, setGroupByMode] = useState("chronological");
-  const [activeMainZone, setActiveMainZone] = useState(null); // null = clean state, "ALL" = view everything
+  const [activeMainZone, setActiveMainZone] = useState(null);
   const [activeSubZone, setActiveSubZone] = useState(null);
 
   // Edit Defect state
@@ -362,7 +363,7 @@ export default function App() {
 
   // Grouping logic honoring Tier 1 & Tier 2 selection
   const groupedRecords = useMemo(() => {
-    if (!activeMainZone) return {}; // Zero-state: Show nothing until user selects a zone
+    if (!activeMainZone) return {};
 
     let recordsToGroup = filteredRecords;
 
@@ -816,23 +817,39 @@ export default function App() {
                 </div>
               )}
 
+              {/* DUAL CAMERA & GALLERY SELECTOR */}
               <div className="border-2 border-dashed border-slate-300 rounded-2xl p-5 text-center bg-slate-50 space-y-3">
                 <Camera className="w-8 h-8 text-blue-600 mx-auto" />
                 <p className="text-xs font-bold text-slate-800">Attach Defect Photos (Max 4, High Resolution)</p>
 
                 {capturedPhotos.length < 4 ? (
-                  <label className="cursor-pointer inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-md transition">
-                    <Plus className="w-4 h-4" />
-                    <span>Snap / Upload Photos ({capturedPhotos.length}/4)</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      capture="environment"
-                      onChange={handleAddPhotos}
-                      className="hidden"
-                    />
-                  </label>
+                  <div className="flex items-center justify-center gap-2 flex-wrap">
+                    {/* Direct Camera Button */}
+                    <label className="cursor-pointer inline-flex items-center gap-1.5 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-md transition">
+                      <Camera className="w-4 h-4" />
+                      <span>Ambil Foto</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        onChange={handleAddPhotos}
+                        className="hidden"
+                      />
+                    </label>
+
+                    {/* Gallery Picker Button */}
+                    <label className="cursor-pointer inline-flex items-center gap-1.5 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-xl shadow-md transition">
+                      <ImageIcon className="w-4 h-4" />
+                      <span>Pilih Galeri</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={handleAddPhotos}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
                 ) : (
                   <div className="text-xs text-amber-700 font-bold bg-amber-50 border border-amber-200 py-2.5 px-4 rounded-xl inline-block">
                     Photo limit reached (4 of 4 attached)
